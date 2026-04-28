@@ -1,0 +1,13 @@
+{
+  "name": "Quiz — AI-powered learning",
+  "short_name": "Quiz",
+  "description": "AI-powered quiz app with random and leveled modes, alarm reminders.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fafaf7",
+  "theme_color": "#7c3aed",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
