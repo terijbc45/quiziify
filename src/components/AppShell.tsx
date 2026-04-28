@@ -1,9 +1,8 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useNavigate, useLocation } from "@tanstack/react-router";
-import { Brain, Home, Bell, User, LogOut, Plus } from "lucide-react";
+import { Brain, Home, Bell, Plus } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
 import { startReminderEngine, stopReminderEngine } from "@/lib/reminder-engine";
 import { AlarmOverlay } from "./AlarmOverlay";
 
@@ -12,6 +11,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const nav = useNavigate();
   const loc = useLocation();
   const [alarm, setAlarm] = useState<null | { id: string; title: string; body: string | null; thumbnail_url: string | null }>(null);
+  const [avatar, setAvatar] = useState<string | null>(null);
+  const [initial, setInitial] = useState<string>("");
 
   useEffect(() => {
     if (loading) return;
@@ -20,6 +21,11 @@ export function AppShell({ children }: { children: ReactNode }) {
       return;
     }
     startReminderEngine(user.id, (r) => setAlarm(r));
+    supabase.from("profiles").select("avatar_url,display_name").eq("id", user.id).maybeSingle()
+      .then(({ data }) => {
+        setAvatar(data?.avatar_url ?? null);
+        setInitial((data?.display_name ?? "?").slice(0, 1).toUpperCase());
+      });
     return () => stopReminderEngine();
   }, [user, loading, nav]);
 
@@ -31,7 +37,6 @@ export function AppShell({ children }: { children: ReactNode }) {
     { to: "/", label: "Home", icon: Home },
     { to: "/create", label: "Create", icon: Plus },
     { to: "/reminders", label: "Reminders", icon: Bell },
-    { to: "/profile", label: "Profile", icon: User },
   ];
 
   return (
@@ -44,20 +49,24 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
             <span className="text-xl font-bold text-gradient">Quiz</span>
           </Link>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={async () => { await supabase.auth.signOut(); nav({ to: "/auth" }); }}
+          <Link
+            to="/profile"
+            aria-label="Profile"
+            className="h-10 w-10 rounded-full overflow-hidden ring-2 ring-border hover:ring-primary transition-all flex items-center justify-center bg-gradient-hero text-white font-bold"
           >
-            <LogOut className="h-4 w-4" />
-          </Button>
+            {avatar ? (
+              <img src={avatar} alt="Profile" className="h-full w-full object-cover" />
+            ) : (
+              <span>{initial}</span>
+            )}
+          </Link>
         </div>
       </header>
 
       <main className="max-w-5xl mx-auto px-4 py-6 pb-28">{children}</main>
 
       <nav className="fixed bottom-0 inset-x-0 z-40 backdrop-blur-xl bg-background/90 border-t border-border">
-        <div className="max-w-5xl mx-auto grid grid-cols-4">
+        <div className="max-w-5xl mx-auto grid grid-cols-3">
           {tabs.map((t) => {
             const active = loc.pathname === t.to || (t.to !== "/" && loc.pathname.startsWith(t.to));
             const Icon = t.icon;
