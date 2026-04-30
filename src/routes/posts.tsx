@@ -399,6 +399,3 @@ function Posts() {
     </div>
   );
 }
-
-// silence unused import warning if any (useMemo reserved for future grouping)
-void useMemo;
