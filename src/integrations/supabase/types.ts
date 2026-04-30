@@ -39,6 +39,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          cover_photo_url: string | null
           created_at: string
           display_name: string
           id: string
@@ -47,6 +48,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          cover_photo_url?: string | null
           created_at?: string
           display_name?: string
           id: string
@@ -55,6 +57,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          cover_photo_url?: string | null
           created_at?: string
           display_name?: string
           id?: string
@@ -139,6 +142,7 @@ export type Database = {
           difficulty: string
           explanation: string | null
           id: string
+          image_url: string | null
           options: Json
           question: string
           topic: string
@@ -150,6 +154,7 @@ export type Database = {
           difficulty: string
           explanation?: string | null
           id?: string
+          image_url?: string | null
           options: Json
           question: string
           topic: string
@@ -161,6 +166,7 @@ export type Database = {
           difficulty?: string
           explanation?: string | null
           id?: string
+          image_url?: string | null
           options?: Json
           question?: string
           topic?: string
