@@ -41,18 +41,20 @@ function Home() {
         <div className="absolute -top-12 -right-12 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
         <p className="text-white/80 text-sm font-medium">Welcome back{name ? `, ${name}` : ""}</p>
         <h1 className="text-3xl md:text-4xl font-bold mt-1">Ready to learn something new?</h1>
-        {progress && (
-          <div className="mt-6 flex gap-6">
-            <Stat icon={<TrendingUp className="h-4 w-4" />} label="Level" value={progress.current_level} />
-            <Stat icon={<Trophy className="h-4 w-4" />} label="Score" value={progress.total_score} />
-          </div>
-        )}
-        <Link
-          to="/play"
-          className="mt-6 inline-flex items-center gap-2 bg-white text-foreground font-bold px-6 py-3 rounded-full shadow-soft hover:scale-105 transition-transform"
-        >
-          <Play className="h-5 w-5 fill-current" /> Start
-        </Link>
+        <div className="mt-6 flex items-center gap-4 flex-wrap">
+          {progress && (
+            <>
+              <Stat icon={<TrendingUp className="h-4 w-4" />} label="Level" value={progress.current_level} />
+              <Stat icon={<Trophy className="h-4 w-4" />} label="Score" value={progress.total_score} />
+            </>
+          )}
+          <Link
+            to="/play"
+            className="ml-auto inline-flex items-center gap-2 bg-white text-foreground font-bold px-6 py-3 rounded-full shadow-soft hover:scale-105 transition-transform"
+          >
+            <Play className="h-5 w-5 fill-current" /> Start
+          </Link>
+        </div>
       </div>
 
       <div className="rounded-3xl bg-card p-6 shadow-card border border-border">
