@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { ArrowLeft, Sparkles, Lock, Check, Trophy, ArrowRight } from "lucide-react";
-import { toast } from "sonner";
 import {
   consumeCachedQuiz,
   fetchSeenQuestions,
@@ -235,8 +234,6 @@ function LevelGrid({
       <p className="text-xs text-center text-muted-foreground">
         Difficulty rises with each level. Questions never repeat.
       </p>
-      {/* keep toast util import-warning silent */}
-      <span className="hidden">{String(toast.length)}</span>
     </div>
   );
 }
