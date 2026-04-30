@@ -3,11 +3,16 @@ import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { QuizPlayer, type QuizQuestion } from "@/components/QuizPlayer";
 import { Button } from "@/components/ui/button";
-import { generateQuestions } from "@/server/quiz.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { ArrowLeft, Sparkles } from "lucide-react";
-import { toast } from "sonner";
+import { ArrowLeft, Sparkles, Lock, Check, Trophy, ArrowRight } from "lucide-react";
+import {
+  consumeCachedQuiz,
+  fetchSeenQuestions,
+  prefetchQuiz,
+  recordSeen,
+  hashQuestion,
+} from "@/lib/quiz-cache";
 
 export const Route = createFileRoute("/level")({ component: () => <AppShell><LevelMode /></AppShell> });
 
@@ -20,72 +25,215 @@ function difficultyForLevel(lvl: number): "easy" | "intermediate" | "hard" {
 function LevelMode() {
   const { user } = useAuth();
   const nav = useNavigate();
-  const [level, setLevel] = useState(1);
-  const [started, setStarted] = useState(false);
+  const [currentLevel, setCurrentLevel] = useState(1);
+  const [activeLevel, setActiveLevel] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
+  const [postQuiz, setPostQuiz] = useState<null | { passed: boolean; score: number; level: number }>(null);
 
   useEffect(() => {
     if (!user) return;
     supabase.from("level_progress").select("current_level").eq("user_id", user.id).maybeSingle()
-      .then(({ data }) => { if (data) setLevel(data.current_level); });
+      .then(({ data }) => { if (data) setCurrentLevel(data.current_level); });
   }, [user]);
 
-  const start = async () => {
-    setStarted(true);
+  // Prefetch the user's current unlocked level for instant start
+  useEffect(() => {
+    if (!user || !currentLevel) return;
+    const key = `level:${user.id}:${currentLevel}`;
+    fetchSeenQuestions(user.id).then((seen) => {
+      const avoid = seen.slice(-100);
+      prefetchQuiz(key, { topic: "any", difficulty: difficultyForLevel(currentLevel), count: 5, level: currentLevel, avoid });
+    });
+  }, [user, currentLevel]);
+
+  const startLevel = async (lvl: number) => {
+    if (!user) return;
+    setActiveLevel(lvl);
     setLoading(true);
     setError(null);
-    const diff = difficultyForLevel(level);
-    const res = await generateQuestions({ data: { topic: "any", difficulty: diff, count: 5, level } });
+    setPostQuiz(null);
+
+    const key = `level:${user.id}:${lvl}`;
+    let promise = consumeCachedQuiz(key);
+    if (!promise) {
+      const seen = await fetchSeenQuestions(user.id);
+      promise = prefetchQuiz(key, {
+        topic: "any",
+        difficulty: difficultyForLevel(lvl),
+        count: 5,
+        level: lvl,
+        avoid: seen.slice(-100),
+      });
+      consumeCachedQuiz(key);
+    }
+    const res = await promise;
     if (res.error) { setError(res.error); setLoading(false); return; }
-    setQuestions(res.questions.map((q) => ({ ...q, author: null })));
+
+    // Local de-dupe against any seen this session
+    const seenSet = new Set((await fetchSeenQuestions(user.id)));
+    const filtered = res.questions.filter((q) => !seenSet.has(hashQuestion(q.question)));
+    const final = filtered.length >= 3 ? filtered : res.questions;
+    setQuestions(final);
     setLoading(false);
   };
 
   const finish = async (score: number) => {
-    if (!user) return;
-    const passed = score >= 4; // need 4/5 to advance
-    const newLevel = passed ? level + 1 : level;
+    if (!user || activeLevel === null) return;
+    const passed = score >= 4;
+    const newLevel = passed && activeLevel === currentLevel ? activeLevel + 1 : currentLevel;
+
+    await recordSeen(user.id, questions, "level", activeLevel);
+
     await supabase.from("quiz_attempts").insert({
-      user_id: user.id, mode: "level", level, difficulty: difficultyForLevel(level), score, total: questions.length, topic: "any",
+      user_id: user.id, mode: "level", level: activeLevel, difficulty: difficultyForLevel(activeLevel), score, total: questions.length, topic: "any",
     });
-    await supabase.from("level_progress").update({
-      current_level: newLevel,
-      total_score: (await supabase.from("level_progress").select("total_score").eq("user_id", user.id).single()).data!.total_score + score,
-      updated_at: new Date().toISOString(),
-    }).eq("user_id", user.id);
-    if (passed) toast.success(`Level ${level} cleared! Onto Level ${newLevel}.`);
-    else toast.info(`Need 4/5 to advance. Try Level ${level} again!`);
-    nav({ to: "/profile" });
+
+    if (newLevel !== currentLevel) {
+      const cur = (await supabase.from("level_progress").select("total_score").eq("user_id", user.id).single()).data!.total_score;
+      await supabase.from("level_progress").update({
+        current_level: newLevel,
+        total_score: cur + score,
+        updated_at: new Date().toISOString(),
+      }).eq("user_id", user.id);
+      setCurrentLevel(newLevel);
+    } else {
+      const cur = (await supabase.from("level_progress").select("total_score").eq("user_id", user.id).single()).data!.total_score;
+      await supabase.from("level_progress").update({ total_score: cur + score }).eq("user_id", user.id);
+    }
+
+    setPostQuiz({ passed, score, level: activeLevel });
+
+    // Prefetch next level in background
+    if (passed) {
+      const nextL = activeLevel + 1;
+      const seen = await fetchSeenQuestions(user.id);
+      prefetchQuiz(`level:${user.id}:${nextL}`, {
+        topic: "any", difficulty: difficultyForLevel(nextL), count: 5, level: nextL, avoid: seen.slice(-100),
+      });
+    }
   };
+
+  const backToGrid = () => {
+    setActiveLevel(null);
+    setQuestions([]);
+    setPostQuiz(null);
+  };
+
+  // ---------- Render ----------
+  if (activeLevel === null) {
+    return <LevelGrid currentLevel={currentLevel} onStart={startLevel} onBack={() => nav({ to: "/play" })} />;
+  }
+
+  if (postQuiz) {
+    return (
+      <div className="space-y-6 max-w-lg mx-auto">
+        <div className="rounded-3xl bg-gradient-card p-8 text-center shadow-glow animate-slide-in">
+          <Trophy className="h-16 w-16 text-primary mx-auto mb-4" />
+          <h2 className="text-3xl font-bold mb-1">
+            {postQuiz.passed ? `Level ${postQuiz.level} cleared!` : `Almost!`}
+          </h2>
+          <p className="text-5xl font-bold text-gradient mb-2">{postQuiz.score} / 5</p>
+          <p className="text-muted-foreground mb-6">
+            {postQuiz.passed
+              ? `Ready for Level ${postQuiz.level + 1}?`
+              : `You need 4/5 to advance. Try Level ${postQuiz.level} again.`}
+          </p>
+          <div className="flex gap-3 justify-center flex-wrap">
+            {postQuiz.passed ? (
+              <>
+                <Button onClick={() => startLevel(postQuiz.level + 1)} className="rounded-full bg-gradient-hero font-bold">
+                  Start Level {postQuiz.level + 1} <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+                <Button variant="outline" onClick={backToGrid} className="rounded-full">All levels</Button>
+              </>
+            ) : (
+              <>
+                <Button onClick={() => startLevel(postQuiz.level)} className="rounded-full bg-gradient-hero font-bold">
+                  Retry Level {postQuiz.level}
+                </Button>
+                <Button variant="outline" onClick={backToGrid} className="rounded-full">All levels</Button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <Button variant="ghost" size="sm" onClick={() => nav({ to: "/" })} className="rounded-full">
-        <ArrowLeft className="h-4 w-4 mr-1" /> Home
+      <Button variant="ghost" size="sm" onClick={backToGrid} className="rounded-full">
+        <ArrowLeft className="h-4 w-4 mr-1" /> Levels
       </Button>
+      <QuizPlayer
+        loading={loading}
+        error={error}
+        questions={questions}
+        title={`Level ${activeLevel} · ${difficultyForLevel(activeLevel)}`}
+        onFinish={finish}
+        onRetry={() => startLevel(activeLevel)}
+      />
+    </div>
+  );
+}
 
-      {!started ? (
-        <div className="rounded-3xl bg-gradient-hero p-8 text-white shadow-glow max-w-lg mx-auto text-center animate-slide-in">
-          <Sparkles className="h-12 w-12 mx-auto mb-4" />
-          <p className="text-white/80 font-medium">Current level</p>
-          <p className="text-7xl font-bold mb-2">{level}</p>
-          <p className="text-white/90 mb-6">Difficulty: <span className="font-semibold capitalize">{difficultyForLevel(level)}</span> · Score 4/5 or more to advance</p>
-          <Button onClick={start} size="lg" className="rounded-full bg-white text-primary hover:bg-white/90 font-bold shadow-glow">
-            Start Level {level}
-          </Button>
-        </div>
-      ) : (
-        <QuizPlayer
-          loading={loading}
-          error={error}
-          questions={questions}
-          title={`Level ${level} · ${difficultyForLevel(level)}`}
-          onFinish={finish}
-          onRetry={start}
-        />
-      )}
+function LevelGrid({
+  currentLevel,
+  onStart,
+  onBack,
+}: {
+  currentLevel: number;
+  onStart: (lvl: number) => void;
+  onBack: () => void;
+}) {
+  // Show levels in chunks of 30, including current and ones already unlocked
+  const total = Math.max(30, currentLevel + 9);
+  const levels = Array.from({ length: total }, (_, i) => i + 1);
+
+  return (
+    <div className="space-y-6 animate-slide-in max-w-3xl mx-auto">
+      <Button variant="ghost" size="sm" onClick={onBack} className="rounded-full">
+        <ArrowLeft className="h-4 w-4 mr-1" /> Back
+      </Button>
+      <div className="rounded-3xl bg-gradient-hero p-6 text-white shadow-glow text-center">
+        <Sparkles className="h-10 w-10 mx-auto mb-2" />
+        <p className="text-white/80 text-sm">Currently on</p>
+        <p className="text-5xl font-bold">Level {currentLevel}</p>
+        <p className="text-white/80 text-xs mt-2">Score 4/5 to unlock the next level</p>
+      </div>
+
+      <h2 className="font-bold text-lg">All levels</h2>
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+        {levels.map((lvl) => {
+          const locked = lvl > currentLevel;
+          const cleared = lvl < currentLevel;
+          const active = lvl === currentLevel;
+          return (
+            <button
+              key={lvl}
+              disabled={locked}
+              onClick={() => onStart(lvl)}
+              className={[
+                "aspect-square rounded-2xl border-2 flex flex-col items-center justify-center font-bold transition-all p-2",
+                locked && "border-border bg-muted/40 text-muted-foreground cursor-not-allowed",
+                cleared && "border-success/40 bg-success/10 text-success-foreground hover:bg-success/20",
+                active && "border-primary bg-gradient-hero text-white shadow-glow scale-105",
+                !locked && "hover:scale-105",
+              ].filter(Boolean).join(" ")}
+            >
+              {locked ? <Lock className="h-4 w-4" /> : cleared ? <Check className="h-4 w-4 mb-0.5" /> : <Sparkles className="h-4 w-4 mb-0.5" />}
+              <span className="text-xs opacity-80">Level</span>
+              <span className="text-lg leading-none">{lvl}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <p className="text-xs text-center text-muted-foreground">
+        Difficulty rises with each level. Questions never repeat.
+      </p>
     </div>
   );
 }

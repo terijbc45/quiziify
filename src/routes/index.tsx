@@ -50,9 +50,9 @@ function Home() {
           )}
           <Link
             to="/play"
-            className="ml-auto inline-flex items-center gap-2 bg-white text-foreground font-bold px-6 py-3 rounded-full shadow-soft hover:scale-105 transition-transform"
+            className="ml-auto inline-flex items-center gap-1.5 bg-white text-foreground font-bold px-3 py-2 md:px-6 md:py-3 rounded-full shadow-soft hover:scale-105 transition-transform text-sm md:text-base"
           >
-            <Play className="h-5 w-5 fill-current" /> Start
+            <Play className="h-4 w-4 md:h-5 md:w-5 fill-current" /> Start
           </Link>
         </div>
       </div>
