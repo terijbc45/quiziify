@@ -31,18 +31,17 @@ function Random() {
       // 30% chance to inject a user-created question if any exist
       const { data: userQs } = await supabase
         .from("user_quizzes")
-        .select("question, options, correct_index, explanation, author_id, profiles!user_quizzes_author_id_fkey(display_name)")
+        .select("question, options, correct_index, explanation, image_url, author_id")
         .eq("difficulty", diff)
         .limit(20);
 
       const aiRes = await generateQuestions({ data: { topic, difficulty: diff, count: 5 } });
       if (aiRes.error) { setError(aiRes.error); setLoading(false); return; }
 
-      let qs: QuizQuestion[] = aiRes.questions.map((q) => ({ ...q, author: null }));
+      let qs: QuizQuestion[] = aiRes.questions.map((q) => ({ ...q, author: null, image_url: null }));
 
       if (userQs && userQs.length > 0) {
         const pick = userQs[Math.floor(Math.random() * userQs.length)];
-        // fetch author name separately to avoid FK shape issues
         const { data: prof } = await supabase.from("profiles").select("display_name").eq("id", pick.author_id).maybeSingle();
         const userQ: QuizQuestion = {
           question: pick.question,
@@ -50,6 +49,7 @@ function Random() {
           correct_index: pick.correct_index,
           explanation: pick.explanation ?? "",
           author: prof?.display_name ?? "A user",
+          image_url: pick.image_url ?? null,
         };
         qs.splice(Math.floor(Math.random() * qs.length), 0, userQ);
       }
