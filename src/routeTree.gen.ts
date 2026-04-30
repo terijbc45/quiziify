@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as RemindersRouteImport } from './routes/reminders'
 import { Route as RandomRouteImport } from './routes/random'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as PostsRouteImport } from './routes/posts'
 import { Route as PlayRouteImport } from './routes/play'
 import { Route as LevelRouteImport } from './routes/level'
 import { Route as CreateRouteImport } from './routes/create'
@@ -31,6 +32,11 @@ const RandomRoute = RandomRouteImport.update({
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PostsRoute = PostsRouteImport.update({
+  id: '/posts',
+  path: '/posts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlayRoute = PlayRouteImport.update({
@@ -65,6 +71,7 @@ export interface FileRoutesByFullPath {
   '/create': typeof CreateRoute
   '/level': typeof LevelRoute
   '/play': typeof PlayRoute
+  '/posts': typeof PostsRoute
   '/profile': typeof ProfileRoute
   '/random': typeof RandomRoute
   '/reminders': typeof RemindersRoute
@@ -75,6 +82,7 @@ export interface FileRoutesByTo {
   '/create': typeof CreateRoute
   '/level': typeof LevelRoute
   '/play': typeof PlayRoute
+  '/posts': typeof PostsRoute
   '/profile': typeof ProfileRoute
   '/random': typeof RandomRoute
   '/reminders': typeof RemindersRoute
@@ -86,6 +94,7 @@ export interface FileRoutesById {
   '/create': typeof CreateRoute
   '/level': typeof LevelRoute
   '/play': typeof PlayRoute
+  '/posts': typeof PostsRoute
   '/profile': typeof ProfileRoute
   '/random': typeof RandomRoute
   '/reminders': typeof RemindersRoute
@@ -98,6 +107,7 @@ export interface FileRouteTypes {
     | '/create'
     | '/level'
     | '/play'
+    | '/posts'
     | '/profile'
     | '/random'
     | '/reminders'
@@ -108,6 +118,7 @@ export interface FileRouteTypes {
     | '/create'
     | '/level'
     | '/play'
+    | '/posts'
     | '/profile'
     | '/random'
     | '/reminders'
@@ -118,6 +129,7 @@ export interface FileRouteTypes {
     | '/create'
     | '/level'
     | '/play'
+    | '/posts'
     | '/profile'
     | '/random'
     | '/reminders'
@@ -129,6 +141,7 @@ export interface RootRouteChildren {
   CreateRoute: typeof CreateRoute
   LevelRoute: typeof LevelRoute
   PlayRoute: typeof PlayRoute
+  PostsRoute: typeof PostsRoute
   ProfileRoute: typeof ProfileRoute
   RandomRoute: typeof RandomRoute
   RemindersRoute: typeof RemindersRoute
@@ -155,6 +168,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/posts': {
+      id: '/posts'
+      path: '/posts'
+      fullPath: '/posts'
+      preLoaderRoute: typeof PostsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/play': {
@@ -201,6 +221,7 @@ const rootRouteChildren: RootRouteChildren = {
   CreateRoute: CreateRoute,
   LevelRoute: LevelRoute,
   PlayRoute: PlayRoute,
+  PostsRoute: PostsRoute,
   ProfileRoute: ProfileRoute,
   RandomRoute: RandomRoute,
   RemindersRoute: RemindersRoute,
