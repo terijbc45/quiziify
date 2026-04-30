@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { z } from "zod";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft, Plus, ImagePlus, X } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/create")({ component: () => <AppShell><Create /></AppShell> });
@@ -25,21 +25,34 @@ const schema = z.object({
 function Create() {
   const { user } = useAuth();
   const nav = useNavigate();
+  const fileRef = useRef<HTMLInputElement>(null);
   const [topic, setTopic] = useState("");
   const [question, setQuestion] = useState("");
   const [options, setOptions] = useState(["", "", "", ""]);
   const [correct, setCorrect] = useState(0);
   const [diff, setDiff] = useState<"easy" | "intermediate" | "hard">("intermediate");
   const [explanation, setExplanation] = useState("");
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const uploadImage = async (file: File) => {
+    if (!user) return;
+    if (file.size > 4 * 1024 * 1024) { toast.error("Max 4MB"); return; }
+    setBusy(true);
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `${user.id}/img-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("quiz-images").upload(path, file, { upsert: true, contentType: file.type });
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    const { data: { publicUrl } } = supabase.storage.from("quiz-images").getPublicUrl(path);
+    setImageUrl(publicUrl);
+    toast.success("Image attached");
+  };
 
   const submit = async () => {
     if (!user) return;
     const parsed = schema.safeParse({ topic, question, options, correct_index: correct, explanation, difficulty: diff });
-    if (!parsed.success) {
-      toast.error(parsed.error.issues[0].message);
-      return;
-    }
+    if (!parsed.success) { toast.error(parsed.error.issues[0].message); return; }
     setBusy(true);
     const { error } = await supabase.from("user_quizzes").insert({
       author_id: user.id,
@@ -49,11 +62,12 @@ function Create() {
       options: parsed.data.options,
       correct_index: parsed.data.correct_index,
       explanation: parsed.data.explanation || null,
+      image_url: imageUrl,
     });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
-    toast.success("Question published! It will appear in Random mode.");
-    nav({ to: "/" });
+    toast.success("Question published! It will appear in Posts and Random.");
+    nav({ to: "/posts" });
   };
 
   return (
@@ -69,7 +83,7 @@ function Create() {
           </div>
           <div>
             <h1 className="text-2xl font-bold">Create a question</h1>
-            <p className="text-sm text-muted-foreground">It'll show in Random with your name on it.</p>
+            <p className="text-sm text-muted-foreground">It'll show in Posts &amp; Random with your name on it.</p>
           </div>
         </div>
 
@@ -87,6 +101,32 @@ function Create() {
                 ))}
               </div>
             </div>
+          </div>
+
+          {/* Image (above question, Duolingo-style) */}
+          <div className="space-y-1.5">
+            <Label>Image (optional, shown above the question)</Label>
+            {imageUrl ? (
+              <div className="relative rounded-2xl overflow-hidden border border-border bg-muted">
+                <img src={imageUrl} alt="" className="w-full max-h-64 object-contain" />
+                <button
+                  onClick={() => setImageUrl(null)}
+                  className="absolute top-2 right-2 h-8 w-8 rounded-full bg-background/90 flex items-center justify-center shadow-soft"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => fileRef.current?.click()}
+                disabled={busy}
+                className="w-full h-28 rounded-2xl border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 transition-colors flex flex-col items-center justify-center gap-1 text-muted-foreground"
+              >
+                <ImagePlus className="h-6 w-6" />
+                <span className="text-sm font-medium">Upload image from device</span>
+              </button>
+            )}
+            <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadImage(f); }} />
           </div>
 
           <div className="space-y-1.5">
@@ -121,7 +161,7 @@ function Create() {
           </div>
 
           <Button onClick={submit} disabled={busy} className="w-full h-12 rounded-2xl bg-gradient-hero font-semibold">
-            {busy ? "Publishing…" : "Publish question"}
+            {busy ? "Working…" : "Publish question"}
           </Button>
         </div>
       </div>
