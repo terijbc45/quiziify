@@ -8,6 +8,7 @@ const Question = z.object({
   options: z.array(z.string()).length(4),
   correct_index: z.number().min(0).max(3),
   explanation: z.string(),
+  emoji: z.string().optional(),
 });
 
 const QuestionSet = z.object({ questions: z.array(Question).min(1) });
@@ -17,6 +18,7 @@ const Input = z.object({
   difficulty: z.enum(["easy", "intermediate", "hard"]),
   count: z.number().min(1).max(10).default(5),
   level: z.number().optional(),
+  avoid: z.array(z.string()).max(200).optional(),
 });
 
 export const generateQuestions = createServerFn({ method: "POST" })
@@ -26,10 +28,14 @@ export const generateQuestions = createServerFn({ method: "POST" })
     if (!key) return { error: "AI not configured", questions: [] as z.infer<typeof Question>[] };
 
     const levelHint = data.level
-      ? ` This is LEVEL ${data.level}. Higher level = harder. Scale challenge accordingly: levels 1-5 beginner, 6-15 intermediate, 16-30 advanced, 30+ expert/obscure.`
+      ? ` This is LEVEL ${data.level}. Difficulty must scale: L1-3 very easy, L4-7 easy, L8-15 intermediate, L16-25 hard, L26-40 very hard, L40+ expert/obscure trivia. Higher levels MUST be noticeably harder.`
       : "";
 
-    const sysPrompt = `You generate high-quality multiple choice quiz questions. Difficulty: ${data.difficulty}.${levelHint} Topic: ${data.topic === "any" ? "any field — vary topics across science, history, geography, math, language, arts, tech, sports" : data.topic}. Each question must have exactly 4 options, one correct answer, and a one-sentence explanation. Be accurate, clear, and varied.`;
+    const avoidHint = data.avoid && data.avoid.length > 0
+      ? ` Do NOT repeat or paraphrase any of these previously-shown question topics: ${data.avoid.slice(0, 60).map((q) => `"${q.slice(0, 80)}"`).join("; ")}. Pick fresh angles.`
+      : "";
+
+    const sysPrompt = `You generate high-quality multiple choice quiz questions. Difficulty: ${data.difficulty}.${levelHint} Topic: ${data.topic === "any" ? "any field — vary widely across science, history, geography, math, language, arts, tech, sports, pop-culture" : data.topic}.${avoidHint} Each question must have exactly 4 options, one correct answer, a one-sentence explanation, and an "emoji" field with a single emoji that visually represents the question subject. Be accurate, clear, varied, and creative.`;
 
     try {
       const res = await fetch(GATEWAY, {
@@ -59,8 +65,9 @@ export const generateQuestions = createServerFn({ method: "POST" })
                           options: { type: "array", items: { type: "string" }, minItems: 4, maxItems: 4 },
                           correct_index: { type: "integer", minimum: 0, maximum: 3 },
                           explanation: { type: "string" },
+                          emoji: { type: "string", description: "single emoji representing the subject" },
                         },
-                        required: ["question", "options", "correct_index", "explanation"],
+                        required: ["question", "options", "correct_index", "explanation", "emoji"],
                         additionalProperties: false,
                       },
                     },
@@ -91,5 +98,51 @@ export const generateQuestions = createServerFn({ method: "POST" })
     } catch (e) {
       console.error("generateQuestions error", e);
       return { error: "Failed to generate questions", questions: [] };
+    }
+  });
+
+const SummaryInput = z.object({
+  question: z.string().min(1).max(500),
+  correct_answer: z.string().min(1).max(300),
+});
+
+export const explainQuestion = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => SummaryInput.parse(input))
+  .handler(async ({ data }) => {
+    const key = process.env.LOVABLE_API_KEY;
+    if (!key) return { error: "AI not configured", summary: "" };
+
+    try {
+      const res = await fetch(GATEWAY, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are an engaging tutor. Given a quiz question and its correct answer, return a vivid, interactive long-form summary in markdown. Use headings (##), bullet points, bold key terms, fun analogies, and a final 'Quick recap' section. Keep it to ~250-350 words. Make it lively with relevant emojis sprinkled in.",
+            },
+            {
+              role: "user",
+              content: `Question: ${data.question}\nCorrect answer: ${data.correct_answer}\n\nWrite the interactive summary.`,
+            },
+          ],
+        }),
+      });
+
+      if (!res.ok) {
+        if (res.status === 429) return { error: "Rate limit reached.", summary: "" };
+        if (res.status === 402) return { error: "AI credits exhausted.", summary: "" };
+        return { error: "AI service error", summary: "" };
+      }
+
+      const json = await res.json();
+      const summary = json.choices?.[0]?.message?.content ?? "";
+      return { error: null, summary };
+    } catch (e) {
+      console.error("explainQuestion error", e);
+      return { error: "Failed to load summary", summary: "" };
     }
   });
