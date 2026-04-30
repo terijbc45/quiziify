@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { Shuffle, Sparkles, ArrowLeft } from "lucide-react";
+import { Shuffle, Sparkles, ArrowLeft, Newspaper } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -53,6 +53,13 @@ function Play() {
           desc={`Climb endless levels.${level ? ` Currently L${level}.` : ""}`}
           icon={<Sparkles className="h-7 w-7" />}
           gradient="from-violet-500 to-blue-500"
+        />
+        <ModeCard
+          to="/posts"
+          title="Posts"
+          desc="See quizzes posted by the community, with author info."
+          icon={<Newspaper className="h-7 w-7" />}
+          gradient="from-emerald-500 to-teal-400"
         />
       </div>
     </div>

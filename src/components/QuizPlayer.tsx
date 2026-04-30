@@ -10,6 +10,7 @@ export type QuizQuestion = {
   correct_index: number;
   explanation: string;
   author?: string | null;
+  image_url?: string | null;
 };
 
 export function QuizPlayer({
@@ -86,7 +87,13 @@ export function QuizPlayer({
         <Progress value={((idx + (answered ? 1 : 0)) / questions.length) * 100} className="h-2" />
       </div>
 
-      <div className="rounded-3xl bg-card p-6 md:p-8 shadow-card border border-border">
+      <div className="rounded-3xl bg-card shadow-card border border-border overflow-hidden">
+        {q.image_url && (
+          <div className="bg-gradient-to-br from-primary/15 via-secondary/10 to-accent/15 flex items-center justify-center p-8">
+            <img src={q.image_url} alt="" className="max-h-56 rounded-2xl object-contain" />
+          </div>
+        )}
+        <div className="p-6 md:p-8">
         {q.author && (
           <p className="text-xs text-muted-foreground mb-3">
             Created by <span className="font-semibold text-primary">{q.author}</span>
@@ -139,6 +146,7 @@ export function QuizPlayer({
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         )}
+        </div>
       </div>
     </div>
   );

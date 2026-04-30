@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { Save, Lock, User as UserIcon, Camera, LogOut, Trophy, TrendingUp, Sparkles } from "lucide-react";
+import { Save, Lock, User as UserIcon, Camera, LogOut, Trophy, TrendingUp, Sparkles, Image as ImageIcon, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/profile")({
@@ -27,11 +27,13 @@ const profileSchema = z.object({
 function Profile() {
   const { user } = useAuth();
   const nav = useNavigate();
-  const fileRef = useRef<HTMLInputElement>(null);
+  const avatarRef = useRef<HTMLInputElement>(null);
+  const coverRef = useRef<HTMLInputElement>(null);
 
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
   const [avatar, setAvatar] = useState<string | null>(null);
+  const [cover, setCover] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -47,6 +49,7 @@ function Profile() {
           setDisplayName(data.display_name);
           setBio(data.bio ?? "");
           setAvatar(data.avatar_url ?? null);
+          setCover((data as any).cover_photo_url ?? null);
         }
       });
     supabase.from("level_progress").select("current_level,total_score").eq("user_id", user.id).maybeSingle()
@@ -57,19 +60,23 @@ function Profile() {
       .then(({ count }) => setCreatedCount(count ?? 0));
   }, [user]);
 
-  const uploadAvatar = async (file: File) => {
+  const uploadImage = async (file: File, kind: "avatar" | "cover") => {
     if (!user) return;
-    if (file.size > 4 * 1024 * 1024) { toast.error("Max 4MB"); return; }
+    if (file.size > 6 * 1024 * 1024) { toast.error("Max 6MB"); return; }
     setBusy(true);
     const ext = file.name.split(".").pop() || "jpg";
-    const path = `${user.id}/avatar-${Date.now()}.${ext}`;
+    const path = `${user.id}/${kind}-${Date.now()}.${ext}`;
     const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true, contentType: file.type });
     if (upErr) { toast.error(upErr.message); setBusy(false); return; }
     const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
-    const { error } = await supabase.from("profiles").update({ avatar_url: publicUrl, updated_at: new Date().toISOString() }).eq("id", user.id);
+    const update = kind === "avatar" ? { avatar_url: publicUrl } : { cover_photo_url: publicUrl };
+    const { error } = await supabase.from("profiles").update({ ...update, updated_at: new Date().toISOString() }).eq("id", user.id);
     setBusy(false);
     if (error) toast.error(error.message);
-    else { setAvatar(publicUrl); toast.success("Profile photo updated"); }
+    else {
+      if (kind === "avatar") setAvatar(publicUrl); else setCover(publicUrl);
+      toast.success(kind === "avatar" ? "Profile photo updated" : "Cover photo updated");
+    }
   };
 
   const save = async () => {
@@ -103,13 +110,28 @@ function Profile() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 animate-slide-in">
-      {/* Cover + avatar — social media style */}
+      {/* Cover + centered avatar — Facebook-style */}
       <div className="rounded-3xl overflow-hidden shadow-card border border-border bg-card">
-        <div className="h-32 md:h-40 bg-gradient-hero relative" />
-        <div className="px-6 pb-6 -mt-12 md:-mt-14">
-          <div className="flex items-end justify-between gap-3 flex-wrap">
+        <div className="relative h-44 sm:h-56 md:h-64">
+          {cover ? (
+            <img src={cover} alt="Cover" className="absolute inset-0 w-full h-full object-cover" />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-hero" />
+          )}
+          <button
+            onClick={() => coverRef.current?.click()}
+            disabled={busy}
+            className="absolute top-3 right-3 h-9 px-3 rounded-full bg-background/90 hover:bg-background flex items-center gap-1.5 text-sm font-semibold shadow-soft disabled:opacity-50"
+            aria-label="Change cover photo"
+          >
+            <ImageIcon className="h-4 w-4" /> <span className="hidden sm:inline">Change cover</span>
+          </button>
+          <input ref={coverRef} type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadImage(f, "cover"); }} />
+
+          {/* Centered circular avatar */}
+          <div className="absolute left-1/2 -translate-x-1/2 -bottom-16 sm:-bottom-20">
             <div className="relative">
-              <div className="h-24 w-24 md:h-28 md:w-28 rounded-3xl overflow-hidden ring-4 ring-card bg-gradient-hero flex items-center justify-center text-white text-4xl font-bold shadow-glow">
+              <div className="h-32 w-32 sm:h-40 sm:w-40 rounded-full overflow-hidden ring-4 ring-card bg-gradient-hero flex items-center justify-center text-white text-5xl font-bold shadow-glow">
                 {avatar ? (
                   <img src={avatar} alt="Profile" className="h-full w-full object-cover" />
                 ) : (
@@ -117,44 +139,44 @@ function Profile() {
                 )}
               </div>
               <button
-                onClick={() => fileRef.current?.click()}
+                onClick={() => avatarRef.current?.click()}
                 disabled={busy}
-                className="absolute -bottom-1 -right-1 h-9 w-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-soft hover:scale-110 transition-transform disabled:opacity-50"
+                className="absolute bottom-1 right-1 h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-soft hover:scale-110 transition-transform disabled:opacity-50 ring-2 ring-card"
                 aria-label="Change photo"
               >
                 <Camera className="h-4 w-4" />
               </button>
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                hidden
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadAvatar(f); }}
-              />
-            </div>
-            <div className="flex gap-2 mt-12 md:mt-14">
-              <Button variant="outline" className="rounded-full" onClick={() => setEditing((v) => !v)}>
-                {editing ? "Cancel" : "Edit profile"}
-              </Button>
-              <Button variant="ghost" className="rounded-full text-destructive" onClick={signOut}>
-                <LogOut className="h-4 w-4 mr-1" /> Sign out
-              </Button>
+              <input ref={avatarRef} type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadImage(f, "avatar"); }} />
             </div>
           </div>
+        </div>
 
-          <div className="mt-4">
+        {/* Spacer for the overflowing avatar */}
+        <div className="pt-20 sm:pt-24 px-6 pb-6">
+          {/* Name & email — centered (also on mobile, immediately under avatar) */}
+          <div className="text-center">
             <h1 className="text-2xl font-bold">{displayName || "Quizzer"}</h1>
-            <p className="text-muted-foreground text-sm">{user?.email}</p>
+            <p className="text-muted-foreground text-sm mt-0.5">{user?.email}</p>
             {bio && <p className="mt-3 text-foreground/90 whitespace-pre-wrap">{bio}</p>}
           </div>
 
-          <div className="grid grid-cols-3 gap-3 mt-5 pt-5 border-t border-border">
+          {/* Actions row: Sign out (left) and Edit profile (right) */}
+          <div className="mt-5 flex items-center justify-between gap-3">
+            <Button variant="outline" className="rounded-full text-destructive border-destructive/30 hover:bg-destructive/10" onClick={signOut}>
+              <LogOut className="h-4 w-4 mr-1" /> Sign out
+            </Button>
+            <Button className="rounded-full bg-gradient-hero" onClick={() => setEditing((v) => !v)}>
+              <Pencil className="h-4 w-4 mr-1" /> {editing ? "Cancel" : "Edit profile"}
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3 mt-6 pt-5 border-t border-border">
             <StatCell icon={<TrendingUp className="h-4 w-4" />} label="Level" value={progress.current_level} />
             <StatCell icon={<Trophy className="h-4 w-4" />} label="Score" value={progress.total_score} />
             <StatCell icon={<Sparkles className="h-4 w-4" />} label="Quizzes" value={attempts} />
           </div>
           {createdCount > 0 && (
-            <p className="text-xs text-muted-foreground mt-3">
+            <p className="text-xs text-muted-foreground mt-3 text-center">
               You've contributed <span className="font-bold text-foreground">{createdCount}</span> question{createdCount === 1 ? "" : "s"} to the community.
             </p>
           )}
