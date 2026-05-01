@@ -81,8 +81,9 @@ function LevelMode() {
 
   const finish = async (score: number) => {
     if (!user || activeLevel === null) return;
-    const passed = score >= 4;
-    const newLevel = passed && activeLevel === currentLevel ? activeLevel + 1 : currentLevel;
+    // Always unlock the next level after attempting (per user request)
+    const passed = true;
+    const newLevel = activeLevel === currentLevel ? activeLevel + 1 : currentLevel;
 
     await recordSeen(user.id, questions, "level", activeLevel);
 
@@ -131,31 +132,16 @@ function LevelMode() {
       <div className="space-y-6 max-w-lg mx-auto">
         <div className="rounded-3xl bg-gradient-card p-8 text-center shadow-glow animate-slide-in">
           <Trophy className="h-16 w-16 text-primary mx-auto mb-4" />
-          <h2 className="text-3xl font-bold mb-1">
-            {postQuiz.passed ? `Level ${postQuiz.level} cleared!` : `Almost!`}
-          </h2>
+          <h2 className="text-3xl font-bold mb-1">Level {postQuiz.level} done!</h2>
           <p className="text-5xl font-bold text-gradient mb-2">{postQuiz.score} / 5</p>
           <p className="text-muted-foreground mb-6">
-            {postQuiz.passed
-              ? `Ready for Level ${postQuiz.level + 1}?`
-              : `You need 4/5 to advance. Try Level ${postQuiz.level} again.`}
+            Level {postQuiz.level + 1} is unlocked. Ready to level up?
           </p>
           <div className="flex gap-3 justify-center flex-wrap">
-            {postQuiz.passed ? (
-              <>
-                <Button onClick={() => startLevel(postQuiz.level + 1)} className="rounded-full bg-gradient-hero font-bold">
-                  Start Level {postQuiz.level + 1} <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-                <Button variant="outline" onClick={backToGrid} className="rounded-full">All levels</Button>
-              </>
-            ) : (
-              <>
-                <Button onClick={() => startLevel(postQuiz.level)} className="rounded-full bg-gradient-hero font-bold">
-                  Retry Level {postQuiz.level}
-                </Button>
-                <Button variant="outline" onClick={backToGrid} className="rounded-full">All levels</Button>
-              </>
-            )}
+            <Button onClick={() => startLevel(postQuiz.level + 1)} className="rounded-full bg-gradient-hero font-bold">
+              Start Level {postQuiz.level + 1} <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+            <Button variant="outline" onClick={backToGrid} className="rounded-full">All levels</Button>
           </div>
         </div>
       </div>

@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { ArrowLeft } from "lucide-react";
-import { toast } from "sonner";
+
 import { consumeCachedQuiz, fetchSeenQuestions, hashQuestion, prefetchQuiz, recordSeen } from "@/lib/quiz-cache";
 
 export const Route = createFileRoute("/random")({ component: () => <AppShell><Random /></AppShell> });
@@ -22,6 +22,7 @@ function Random() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
+  const [endPrompt, setEndPrompt] = useState<null | { score: number; total: number }>(null);
 
   // Prefetch on settings change so Start is near-instant
   useEffect(() => {
@@ -90,8 +91,13 @@ function Random() {
         user_id: user.id, mode: "random", difficulty: diff, score, total: questions.length, topic,
       });
     }
-    toast.success(`Saved! ${score}/${questions.length}`);
-    nav({ to: "/" });
+    setEndPrompt({ score, total: questions.length });
+  };
+
+  const playAgain = async () => {
+    setEndPrompt(null);
+    setQuestions([]);
+    await start();
   };
 
   return (
@@ -126,6 +132,20 @@ function Random() {
             </div>
             <Button onClick={start} className="w-full h-12 rounded-2xl bg-gradient-hero font-semibold">
               Start quiz
+            </Button>
+          </div>
+        </div>
+      ) : endPrompt ? (
+        <div className="rounded-3xl bg-gradient-card p-8 text-center shadow-glow animate-slide-in max-w-lg mx-auto">
+          <h2 className="text-3xl font-bold mb-2">Nice run!</h2>
+          <p className="text-5xl font-bold text-gradient mb-2">{endPrompt.score} / {endPrompt.total}</p>
+          <p className="text-muted-foreground mb-6">Keep going with another fresh round?</p>
+          <div className="flex gap-3 justify-center flex-wrap">
+            <Button onClick={playAgain} className="rounded-full bg-gradient-hero font-bold">
+              Continue
+            </Button>
+            <Button variant="outline" onClick={() => nav({ to: "/" })} className="rounded-full">
+              Go to Home
             </Button>
           </div>
         </div>

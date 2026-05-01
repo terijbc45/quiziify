@@ -2,12 +2,15 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Sparkles, Trash2, Heart, MessageCircle, Share2, Pencil, Send, X, Check } from "lucide-react";
+import { ArrowLeft, Sparkles, Trash2, Heart, MessageCircle, Share2, Pencil, Send, X, Check, Repeat2 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/posts")({
   component: () => (
@@ -28,6 +31,9 @@ type Post = {
   explanation: string | null;
   image_url: string | null;
   created_at: string;
+  reposted_from_user?: string | null;
+  reposted_from_post?: string | null;
+  reposted_author?: { display_name: string } | null;
   author?: { display_name: string; avatar_url: string | null };
 };
 
@@ -54,6 +60,11 @@ function Posts() {
   const [openComments, setOpenComments] = useState<Record<string, boolean>>({});
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [editing, setEditing] = useState<Record<string, string>>({}); // commentId -> text
+  const [editPost, setEditPost] = useState<Post | null>(null);
+  const [editForm, setEditForm] = useState<{ question: string; options: string[]; correct_index: number; explanation: string }>({
+    question: "", options: ["", "", "", ""], correct_index: 0, explanation: "",
+  });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -65,20 +76,29 @@ function Posts() {
 
     if (!quizzes) { setLoading(false); return; }
 
-    const ids = Array.from(new Set(quizzes.map((q) => q.author_id)));
+    const ids = Array.from(new Set([
+      ...quizzes.map((q) => q.author_id),
+      ...quizzes.map((q) => (q as any).reposted_from_user).filter(Boolean) as string[],
+    ]));
     const { data: profs } = await supabase
       .from("profiles")
       .select("id,display_name,avatar_url")
       .in("id", ids);
 
     const profMap = new Map((profs ?? []).map((p) => [p.id, p]));
-    const finalPosts = quizzes.map((q) => ({
-      ...q,
-      options: q.options as string[],
-      author: profMap.get(q.author_id)
-        ? { display_name: profMap.get(q.author_id)!.display_name, avatar_url: profMap.get(q.author_id)!.avatar_url }
-        : undefined,
-    })) as Post[];
+    const finalPosts = quizzes.map((q) => {
+      const rfu = (q as any).reposted_from_user as string | null | undefined;
+      return {
+        ...q,
+        options: q.options as string[],
+        author: profMap.get(q.author_id)
+          ? { display_name: profMap.get(q.author_id)!.display_name, avatar_url: profMap.get(q.author_id)!.avatar_url }
+          : undefined,
+        reposted_author: rfu && profMap.get(rfu)
+          ? { display_name: profMap.get(rfu)!.display_name }
+          : null,
+      };
+    }) as Post[];
     setPosts(finalPosts);
 
     // Load likes summary
@@ -105,6 +125,63 @@ function Posts() {
     const { error } = await supabase.from("user_quizzes").delete().eq("id", id);
     if (error) toast.error(error.message);
     else { toast.success("Deleted"); load(); }
+  };
+
+  const startEdit = (p: Post) => {
+    setEditPost(p);
+    setEditForm({
+      question: p.question,
+      options: [...p.options],
+      correct_index: p.correct_index,
+      explanation: p.explanation ?? "",
+    });
+  };
+
+  const saveEdit = async () => {
+    if (!editPost) return;
+    if (!editForm.question.trim() || editForm.options.some((o) => !o.trim())) {
+      toast.error("Fill in the question and all 4 options");
+      return;
+    }
+    setSavingEdit(true);
+    const { error } = await supabase.from("user_quizzes").update({
+      question: editForm.question.trim(),
+      options: editForm.options.map((o) => o.trim()),
+      correct_index: editForm.correct_index,
+      explanation: editForm.explanation.trim() || null,
+    }).eq("id", editPost.id);
+    setSavingEdit(false);
+    if (error) toast.error(error.message);
+    else { toast.success("Post updated"); setEditPost(null); load(); }
+  };
+
+  const repost = async (p: Post) => {
+    if (!user) return;
+    if (p.author_id === user.id) { toast.error("You can't repost your own post"); return; }
+    // Avoid duplicate reposts by the same user
+    const { data: existing } = await supabase
+      .from("user_quizzes")
+      .select("id")
+      .eq("author_id", user.id)
+      .eq("reposted_from_post", p.id)
+      .maybeSingle();
+    if (existing) { toast.info("You've already reposted this"); return; }
+
+    const originalSourceUser = p.reposted_from_user ?? p.author_id;
+    const { error } = await supabase.from("user_quizzes").insert({
+      author_id: user.id,
+      topic: p.topic,
+      difficulty: p.difficulty,
+      question: p.question,
+      options: p.options,
+      correct_index: p.correct_index,
+      explanation: p.explanation,
+      image_url: p.image_url,
+      reposted_from_user: originalSourceUser,
+      reposted_from_post: p.id,
+    });
+    if (error) toast.error(error.message);
+    else { toast.success("Reposted"); load(); }
   };
 
   const toggleLike = async (postId: string) => {
@@ -220,6 +297,12 @@ function Posts() {
         const cms = comments[p.id] ?? [];
         return (
           <article key={p.id} className="rounded-3xl bg-card shadow-card border border-border overflow-hidden">
+            {p.reposted_from_user && (
+              <div className="px-4 pt-3 -mb-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Repeat2 className="h-3.5 w-3.5" />
+                <span>{p.author?.display_name ?? "A user"} reposted{p.reposted_author ? ` from ${p.reposted_author.display_name}` : ""}</span>
+              </div>
+            )}
             {/* Author row */}
             <header className="p-4 flex items-center gap-3">
               <div className="h-11 w-11 rounded-full overflow-hidden bg-gradient-hero flex items-center justify-center text-white font-bold ring-2 ring-border">
@@ -236,9 +319,14 @@ function Posts() {
                 </p>
               </div>
               {user?.id === p.author_id && (
-                <Button variant="ghost" size="icon" onClick={() => remove(p.id)} className="rounded-full">
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
+                <>
+                  <Button variant="ghost" size="icon" onClick={() => startEdit(p)} className="rounded-full" aria-label="Edit post">
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => remove(p.id)} className="rounded-full" aria-label="Delete post">
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </>
               )}
             </header>
 
@@ -296,6 +384,16 @@ function Posts() {
                 <MessageCircle className="h-5 w-5" />
                 <span className="text-sm font-semibold">{cms.length || ""}</span>
               </button>
+              {user?.id !== p.author_id && (
+                <button
+                  onClick={() => repost(p)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-full hover:bg-muted transition-colors text-success"
+                  aria-label="Repost"
+                  title="Repost"
+                >
+                  <Repeat2 className="h-5 w-5" />
+                </button>
+              )}
               <button
                 onClick={() => sharePost(p)}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-full hover:bg-muted transition-colors ml-auto"
@@ -396,6 +494,66 @@ function Posts() {
           </article>
         );
       })}
+
+      {/* Edit post dialog (own posts only) */}
+      <Dialog open={!!editPost} onOpenChange={(o) => !o && setEditPost(null)}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto rounded-3xl">
+          <DialogHeader>
+            <DialogTitle>Edit your post</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Question</Label>
+              <Textarea
+                value={editForm.question}
+                onChange={(e) => setEditForm((f) => ({ ...f, question: e.target.value }))}
+                maxLength={500}
+                className="rounded-xl"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Options (tap the dot to mark the correct one)</Label>
+              {editForm.options.map((opt, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditForm((f) => ({ ...f, correct_index: i }))}
+                    className={`h-6 w-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                      editForm.correct_index === i ? "border-success bg-success text-white" : "border-border"
+                    }`}
+                    aria-label={`Mark option ${i + 1} correct`}
+                  >
+                    {editForm.correct_index === i && <Check className="h-3.5 w-3.5" />}
+                  </button>
+                  <Input
+                    value={opt}
+                    onChange={(e) => setEditForm((f) => {
+                      const o = [...f.options]; o[i] = e.target.value; return { ...f, options: o };
+                    })}
+                    maxLength={120}
+                    className="h-10 rounded-xl"
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="space-y-1.5">
+              <Label>Explanation (optional)</Label>
+              <Textarea
+                value={editForm.explanation}
+                onChange={(e) => setEditForm((f) => ({ ...f, explanation: e.target.value }))}
+                maxLength={400}
+                className="rounded-xl"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" className="rounded-full" onClick={() => setEditPost(null)}>Cancel</Button>
+            <Button onClick={saveEdit} disabled={savingEdit} className="rounded-full bg-gradient-hero">
+              <Check className="h-4 w-4 mr-1" /> Save changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

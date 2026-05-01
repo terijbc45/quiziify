@@ -236,6 +236,8 @@ export type Database = {
           image_url: string | null
           options: Json
           question: string
+          reposted_from_post: string | null
+          reposted_from_user: string | null
           topic: string
         }
         Insert: {
@@ -248,6 +250,8 @@ export type Database = {
           image_url?: string | null
           options: Json
           question: string
+          reposted_from_post?: string | null
+          reposted_from_user?: string | null
           topic: string
         }
         Update: {
@@ -260,6 +264,8 @@ export type Database = {
           image_url?: string | null
           options?: Json
           question?: string
+          reposted_from_post?: string | null
+          reposted_from_user?: string | null
           topic?: string
         }
         Relationships: []
