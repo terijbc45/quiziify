@@ -127,6 +127,63 @@ function Posts() {
     else { toast.success("Deleted"); load(); }
   };
 
+  const startEdit = (p: Post) => {
+    setEditPost(p);
+    setEditForm({
+      question: p.question,
+      options: [...p.options],
+      correct_index: p.correct_index,
+      explanation: p.explanation ?? "",
+    });
+  };
+
+  const saveEdit = async () => {
+    if (!editPost) return;
+    if (!editForm.question.trim() || editForm.options.some((o) => !o.trim())) {
+      toast.error("Fill in the question and all 4 options");
+      return;
+    }
+    setSavingEdit(true);
+    const { error } = await supabase.from("user_quizzes").update({
+      question: editForm.question.trim(),
+      options: editForm.options.map((o) => o.trim()),
+      correct_index: editForm.correct_index,
+      explanation: editForm.explanation.trim() || null,
+    }).eq("id", editPost.id);
+    setSavingEdit(false);
+    if (error) toast.error(error.message);
+    else { toast.success("Post updated"); setEditPost(null); load(); }
+  };
+
+  const repost = async (p: Post) => {
+    if (!user) return;
+    if (p.author_id === user.id) { toast.error("You can't repost your own post"); return; }
+    // Avoid duplicate reposts by the same user
+    const { data: existing } = await supabase
+      .from("user_quizzes")
+      .select("id")
+      .eq("author_id", user.id)
+      .eq("reposted_from_post", p.id)
+      .maybeSingle();
+    if (existing) { toast.info("You've already reposted this"); return; }
+
+    const originalSourceUser = p.reposted_from_user ?? p.author_id;
+    const { error } = await supabase.from("user_quizzes").insert({
+      author_id: user.id,
+      topic: p.topic,
+      difficulty: p.difficulty,
+      question: p.question,
+      options: p.options,
+      correct_index: p.correct_index,
+      explanation: p.explanation,
+      image_url: p.image_url,
+      reposted_from_user: originalSourceUser,
+      reposted_from_post: p.id,
+    });
+    if (error) toast.error(error.message);
+    else { toast.success("Reposted"); load(); }
+  };
+
   const toggleLike = async (postId: string) => {
     if (!user) return;
     const cur = likes[postId] ?? { count: 0, mine: false };
