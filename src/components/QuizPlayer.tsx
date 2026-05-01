@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Check, X, Loader2, ArrowRight, Trophy, Sparkles, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogClose } from "@/components/ui/dialog";
 import { explainQuestion } from "@/server/quiz.functions";
 
 export type QuizQuestion = {
@@ -105,9 +105,18 @@ export function QuizPlayer({
   return (
     <div className="space-y-6 animate-slide-in">
       <div>
-        <div className="flex items-center justify-between mb-2 text-sm">
-          <span className="font-semibold text-primary">{title}</span>
-          <span className="text-muted-foreground">{idx + 1} / {questions.length}</span>
+        <div className="flex items-center justify-between mb-2 text-sm gap-2">
+          <span className="font-semibold text-primary truncate">{title}</span>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={openMore}
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 text-xs font-bold shadow-soft transition-all"
+              aria-label="More info"
+            >
+              <Sparkles className="h-3.5 w-3.5" /> More
+            </button>
+            <span className="text-muted-foreground">{idx + 1} / {questions.length}</span>
+          </div>
         </div>
         <Progress value={((idx + (answered ? 1 : 0)) / questions.length) * 100} className="h-2" />
       </div>
@@ -115,15 +124,6 @@ export function QuizPlayer({
       <div className="rounded-3xl bg-card shadow-card border border-border overflow-hidden">
         {/* Visual header — emoji graphic or image */}
         <div className={cn("relative bg-gradient-to-br flex items-center justify-center p-8 min-h-[180px]", grad)}>
-          {/* More button top-right */}
-          <button
-            onClick={openMore}
-            className="absolute top-3 right-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/80 backdrop-blur text-xs font-bold text-foreground hover:bg-white shadow-soft transition-all"
-            aria-label="More info"
-          >
-            <Sparkles className="h-3.5 w-3.5 text-primary" /> More
-          </button>
-
           {q.image_url ? (
             <img src={q.image_url} alt="" className="max-h-48 rounded-2xl object-contain" />
           ) : (
@@ -190,12 +190,21 @@ export function QuizPlayer({
       </div>
 
       <Dialog open={moreOpen} onOpenChange={setMoreOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto rounded-3xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-2xl">
+        <DialogContent
+          showCloseButton={false}
+          className="max-w-2xl max-h-[85vh] overflow-y-auto rounded-3xl border-white/20 bg-background/40 backdrop-blur-2xl shadow-glow"
+        >
+          <div className="flex items-start justify-between mb-3 sticky top-0">
+            <h3 className="flex items-center gap-2 text-2xl font-bold">
               <BookOpen className="h-6 w-6 text-primary" /> Deep dive
-            </DialogTitle>
-          </DialogHeader>
+            </h3>
+            <DialogClose
+              className="h-9 w-9 rounded-full bg-background/60 hover:bg-background flex items-center justify-center transition-colors"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" />
+            </DialogClose>
+          </div>
           {summaryLoading ? (
             <div className="flex items-center gap-3 py-8 text-muted-foreground">
               <Loader2 className="h-5 w-5 animate-spin" /> Crafting an interactive summary…
