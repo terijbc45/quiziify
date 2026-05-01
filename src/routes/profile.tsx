@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { Save, Lock, User as UserIcon, Camera, LogOut, Trophy, TrendingUp, Sparkles, Image as ImageIcon, Pencil } from "lucide-react";
+import { Save, Lock, Camera, LogOut, Trophy, TrendingUp, Sparkles, Image as ImageIcon, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/profile")({
