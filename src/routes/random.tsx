@@ -135,6 +135,20 @@ function Random() {
             </Button>
           </div>
         </div>
+      ) : endPrompt ? (
+        <div className="rounded-3xl bg-gradient-card p-8 text-center shadow-glow animate-slide-in max-w-lg mx-auto">
+          <h2 className="text-3xl font-bold mb-2">Nice run!</h2>
+          <p className="text-5xl font-bold text-gradient mb-2">{endPrompt.score} / {endPrompt.total}</p>
+          <p className="text-muted-foreground mb-6">Keep going with another fresh round?</p>
+          <div className="flex gap-3 justify-center flex-wrap">
+            <Button onClick={playAgain} className="rounded-full bg-gradient-hero font-bold">
+              Continue
+            </Button>
+            <Button variant="outline" onClick={() => nav({ to: "/" })} className="rounded-full">
+              Go to Home
+            </Button>
+          </div>
+        </div>
       ) : (
         <QuizPlayer
           loading={loading}
