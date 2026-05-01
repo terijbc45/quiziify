@@ -31,6 +31,9 @@ type Post = {
   explanation: string | null;
   image_url: string | null;
   created_at: string;
+  reposted_from_user?: string | null;
+  reposted_from_post?: string | null;
+  reposted_author?: { display_name: string } | null;
   author?: { display_name: string; avatar_url: string | null };
 };
 
