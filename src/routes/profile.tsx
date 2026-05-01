@@ -193,40 +193,107 @@ function Profile() {
         </div>
       </div>
 
+      <Section title="Change password" icon={<Lock className="h-4 w-4" />}>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label>Current password</Label>
+            <Input
+              type="password"
+              value={oldPassword}
+              onChange={(e) => setOldPassword(e.target.value)}
+              placeholder="Enter your current password"
+              className="h-11 rounded-xl"
+              autoComplete="current-password"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>New password</Label>
+            <Input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="New password (min 8 characters)"
+              minLength={8}
+              className="h-11 rounded-xl"
+              autoComplete="new-password"
+            />
+          </div>
+          <Button onClick={changePassword} disabled={busy} className="rounded-full bg-gradient-hero">
+            Update password
+          </Button>
+        </div>
+      </Section>
+
+      {/* Fullscreen edit overlay — covers the entire device screen */}
       {editing && (
-        <Section title="Edit profile" icon={<UserIcon className="h-4 w-4" />}>
-          <div className="space-y-3">
+        <div className="fixed inset-0 z-[60] bg-background overflow-y-auto animate-slide-in">
+          <div className="sticky top-0 z-10 backdrop-blur-xl bg-background/90 border-b border-border">
+            <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
+              <button
+                onClick={() => setEditing(false)}
+                className="rounded-full px-3 py-1.5 text-sm font-semibold hover:bg-muted"
+              >
+                Cancel
+              </button>
+              <h2 className="font-bold text-lg">Edit profile</h2>
+              <Button onClick={save} disabled={busy} size="sm" className="rounded-full bg-gradient-hero">
+                <Save className="h-4 w-4 mr-1" /> Save
+              </Button>
+            </div>
+          </div>
+          <div className="max-w-2xl mx-auto p-5 space-y-6">
+            {/* Cover preview + change */}
+            <div>
+              <Label className="mb-2 block">Cover photo</Label>
+              <div className="relative h-40 sm:h-52 rounded-2xl overflow-hidden border border-border">
+                {cover ? (
+                  <img src={cover} alt="Cover" className="absolute inset-0 w-full h-full object-cover" />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-hero" />
+                )}
+                <button
+                  onClick={() => coverRef.current?.click()}
+                  disabled={busy}
+                  className="absolute bottom-3 right-3 h-9 px-3 rounded-full bg-background/90 hover:bg-background flex items-center gap-1.5 text-sm font-semibold shadow-soft disabled:opacity-50"
+                >
+                  <ImageIcon className="h-4 w-4" /> Change cover
+                </button>
+              </div>
+            </div>
+
+            {/* Avatar change */}
+            <div>
+              <Label className="mb-2 block">Profile picture</Label>
+              <div className="flex items-center gap-4">
+                <div className="h-20 w-20 rounded-full overflow-hidden ring-2 ring-border bg-gradient-hero flex items-center justify-center text-white text-2xl font-bold">
+                  {avatar ? (
+                    <img src={avatar} alt="Profile" className="h-full w-full object-cover" />
+                  ) : (
+                    <span>{(displayName || "?").slice(0, 1).toUpperCase()}</span>
+                  )}
+                </div>
+                <Button variant="outline" className="rounded-full" onClick={() => avatarRef.current?.click()} disabled={busy}>
+                  <Camera className="h-4 w-4 mr-1" /> Change photo
+                </Button>
+              </div>
+            </div>
+
             <div className="space-y-1.5">
               <Label>Display name</Label>
               <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={40} className="h-11 rounded-xl" />
             </div>
             <div className="space-y-1.5">
               <Label>Bio</Label>
-              <Textarea value={bio} onChange={(e) => setBio(e.target.value)} maxLength={280} className="rounded-xl" placeholder="Tell people about yourself…" />
+              <Textarea value={bio} onChange={(e) => setBio(e.target.value)} maxLength={280} className="rounded-xl min-h-[120px]" placeholder="Tell people about yourself…" />
               <p className="text-xs text-muted-foreground text-right">{bio.length}/280</p>
             </div>
-            <Button onClick={save} disabled={busy} className="rounded-full bg-gradient-hero">
+
+            <Button onClick={save} disabled={busy} className="w-full h-12 rounded-2xl bg-gradient-hero font-semibold">
               <Save className="h-4 w-4 mr-1" /> Save changes
             </Button>
           </div>
-        </Section>
-      )}
-
-      <Section title="Change password" icon={<Lock className="h-4 w-4" />}>
-        <div className="flex gap-2">
-          <Input
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            placeholder="New password (min 8)"
-            minLength={8}
-            className="h-11 rounded-xl"
-          />
-          <Button onClick={changePassword} disabled={busy} variant="outline" className="rounded-full whitespace-nowrap">
-            Update
-          </Button>
         </div>
-      </Section>
+      )}
     </div>
   );
 }
