@@ -494,6 +494,66 @@ function Posts() {
           </article>
         );
       })}
+
+      {/* Edit post dialog (own posts only) */}
+      <Dialog open={!!editPost} onOpenChange={(o) => !o && setEditPost(null)}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto rounded-3xl">
+          <DialogHeader>
+            <DialogTitle>Edit your post</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Question</Label>
+              <Textarea
+                value={editForm.question}
+                onChange={(e) => setEditForm((f) => ({ ...f, question: e.target.value }))}
+                maxLength={500}
+                className="rounded-xl"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Options (tap the dot to mark the correct one)</Label>
+              {editForm.options.map((opt, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditForm((f) => ({ ...f, correct_index: i }))}
+                    className={`h-6 w-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                      editForm.correct_index === i ? "border-success bg-success text-white" : "border-border"
+                    }`}
+                    aria-label={`Mark option ${i + 1} correct`}
+                  >
+                    {editForm.correct_index === i && <Check className="h-3.5 w-3.5" />}
+                  </button>
+                  <Input
+                    value={opt}
+                    onChange={(e) => setEditForm((f) => {
+                      const o = [...f.options]; o[i] = e.target.value; return { ...f, options: o };
+                    })}
+                    maxLength={120}
+                    className="h-10 rounded-xl"
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="space-y-1.5">
+              <Label>Explanation (optional)</Label>
+              <Textarea
+                value={editForm.explanation}
+                onChange={(e) => setEditForm((f) => ({ ...f, explanation: e.target.value }))}
+                maxLength={400}
+                className="rounded-xl"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" className="rounded-full" onClick={() => setEditPost(null)}>Cancel</Button>
+            <Button onClick={saveEdit} disabled={savingEdit} className="rounded-full bg-gradient-hero">
+              <Check className="h-4 w-4 mr-1" /> Save changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
