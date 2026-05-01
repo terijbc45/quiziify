@@ -384,6 +384,16 @@ function Posts() {
                 <MessageCircle className="h-5 w-5" />
                 <span className="text-sm font-semibold">{cms.length || ""}</span>
               </button>
+              {user?.id !== p.author_id && (
+                <button
+                  onClick={() => repost(p)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-full hover:bg-muted transition-colors text-success"
+                  aria-label="Repost"
+                  title="Repost"
+                >
+                  <Repeat2 className="h-5 w-5" />
+                </button>
+              )}
               <button
                 onClick={() => sharePost(p)}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-full hover:bg-muted transition-colors ml-auto"
