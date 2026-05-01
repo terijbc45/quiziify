@@ -91,8 +91,13 @@ function Random() {
         user_id: user.id, mode: "random", difficulty: diff, score, total: questions.length, topic,
       });
     }
-    toast.success(`Saved! ${score}/${questions.length}`);
-    nav({ to: "/" });
+    setEndPrompt({ score, total: questions.length });
+  };
+
+  const playAgain = async () => {
+    setEndPrompt(null);
+    setQuestions([]);
+    await start();
   };
 
   return (
