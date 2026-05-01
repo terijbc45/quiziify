@@ -96,12 +96,21 @@ function Profile() {
   };
 
   const changePassword = async () => {
-    if (newPassword.length < 8) { toast.error("Min 8 characters"); return; }
+    if (!user?.email) { toast.error("No email on account"); return; }
+    if (!oldPassword) { toast.error("Enter your current password"); return; }
+    if (newPassword.length < 8) { toast.error("New password: min 8 characters"); return; }
+    if (oldPassword === newPassword) { toast.error("New password must differ from the old one"); return; }
     setBusy(true);
+    // Verify old password by re-authenticating
+    const { error: authErr } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: oldPassword,
+    });
+    if (authErr) { setBusy(false); toast.error("Current password is incorrect"); return; }
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     setBusy(false);
     if (error) toast.error(error.message);
-    else { toast.success("Password updated"); setNewPassword(""); }
+    else { toast.success("Password updated"); setOldPassword(""); setNewPassword(""); }
   };
 
   const signOut = async () => {
