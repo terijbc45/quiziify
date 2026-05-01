@@ -81,8 +81,9 @@ function LevelMode() {
 
   const finish = async (score: number) => {
     if (!user || activeLevel === null) return;
-    const passed = score >= 4;
-    const newLevel = passed && activeLevel === currentLevel ? activeLevel + 1 : currentLevel;
+    // Always unlock the next level after attempting (per user request)
+    const passed = true;
+    const newLevel = activeLevel === currentLevel ? activeLevel + 1 : currentLevel;
 
     await recordSeen(user.id, questions, "level", activeLevel);
 
