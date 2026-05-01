@@ -22,6 +22,7 @@ function Random() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
+  const [endPrompt, setEndPrompt] = useState<null | { score: number; total: number }>(null);
 
   // Prefetch on settings change so Start is near-instant
   useEffect(() => {
