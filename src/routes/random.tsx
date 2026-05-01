@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { ArrowLeft } from "lucide-react";
-import { toast } from "sonner";
+
 import { consumeCachedQuiz, fetchSeenQuestions, hashQuestion, prefetchQuiz, recordSeen } from "@/lib/quiz-cache";
 
 export const Route = createFileRoute("/random")({ component: () => <AppShell><Random /></AppShell> });
