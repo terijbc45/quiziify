@@ -76,20 +76,29 @@ function Posts() {
 
     if (!quizzes) { setLoading(false); return; }
 
-    const ids = Array.from(new Set(quizzes.map((q) => q.author_id)));
+    const ids = Array.from(new Set([
+      ...quizzes.map((q) => q.author_id),
+      ...quizzes.map((q) => (q as any).reposted_from_user).filter(Boolean) as string[],
+    ]));
     const { data: profs } = await supabase
       .from("profiles")
       .select("id,display_name,avatar_url")
       .in("id", ids);
 
     const profMap = new Map((profs ?? []).map((p) => [p.id, p]));
-    const finalPosts = quizzes.map((q) => ({
-      ...q,
-      options: q.options as string[],
-      author: profMap.get(q.author_id)
-        ? { display_name: profMap.get(q.author_id)!.display_name, avatar_url: profMap.get(q.author_id)!.avatar_url }
-        : undefined,
-    })) as Post[];
+    const finalPosts = quizzes.map((q) => {
+      const rfu = (q as any).reposted_from_user as string | null | undefined;
+      return {
+        ...q,
+        options: q.options as string[],
+        author: profMap.get(q.author_id)
+          ? { display_name: profMap.get(q.author_id)!.display_name, avatar_url: profMap.get(q.author_id)!.avatar_url }
+          : undefined,
+        reposted_author: rfu && profMap.get(rfu)
+          ? { display_name: profMap.get(rfu)!.display_name }
+          : null,
+      };
+    }) as Post[];
     setPosts(finalPosts);
 
     // Load likes summary
