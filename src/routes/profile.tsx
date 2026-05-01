@@ -35,6 +35,7 @@ function Profile() {
   const [avatar, setAvatar] = useState<string | null>(null);
   const [cover, setCover] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState({ current_level: 1, total_score: 0 });
