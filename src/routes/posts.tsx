@@ -60,6 +60,11 @@ function Posts() {
   const [openComments, setOpenComments] = useState<Record<string, boolean>>({});
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [editing, setEditing] = useState<Record<string, string>>({}); // commentId -> text
+  const [editPost, setEditPost] = useState<Post | null>(null);
+  const [editForm, setEditForm] = useState<{ question: string; options: string[]; correct_index: number; explanation: string }>({
+    question: "", options: ["", "", "", ""], correct_index: 0, explanation: "",
+  });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const load = async () => {
     setLoading(true);
