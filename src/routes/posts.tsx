@@ -297,6 +297,12 @@ function Posts() {
         const cms = comments[p.id] ?? [];
         return (
           <article key={p.id} className="rounded-3xl bg-card shadow-card border border-border overflow-hidden">
+            {p.reposted_from_user && (
+              <div className="px-4 pt-3 -mb-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Repeat2 className="h-3.5 w-3.5" />
+                <span>{p.author?.display_name ?? "A user"} reposted{p.reposted_author ? ` from ${p.reposted_author.display_name}` : ""}</span>
+              </div>
+            )}
             {/* Author row */}
             <header className="p-4 flex items-center gap-3">
               <div className="h-11 w-11 rounded-full overflow-hidden bg-gradient-hero flex items-center justify-center text-white font-bold ring-2 ring-border">
@@ -313,9 +319,14 @@ function Posts() {
                 </p>
               </div>
               {user?.id === p.author_id && (
-                <Button variant="ghost" size="icon" onClick={() => remove(p.id)} className="rounded-full">
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
+                <>
+                  <Button variant="ghost" size="icon" onClick={() => startEdit(p)} className="rounded-full" aria-label="Edit post">
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => remove(p.id)} className="rounded-full" aria-label="Delete post">
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </>
               )}
             </header>
 
