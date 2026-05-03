@@ -189,24 +189,32 @@ export function QuizPlayer({
         </div>
       </div>
 
-      <Dialog open={moreOpen} onOpenChange={setMoreOpen}>
-        <DialogContent
-          className="max-w-2xl max-h-[85vh] overflow-y-auto rounded-3xl border-white/20 bg-background/40 backdrop-blur-2xl shadow-glow"
-        >
-          <h3 className="flex items-center gap-2 text-2xl font-bold mb-3 pr-10">
-            <BookOpen className="h-6 w-6 text-primary" /> Deep dive
-          </h3>
-          {summaryLoading ? (
-            <div className="flex items-center gap-3 py-8 text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin" /> Crafting an interactive summary…
-            </div>
-          ) : (
-            <div className="prose prose-sm max-w-none whitespace-pre-wrap text-foreground leading-relaxed">
-              {summary}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {moreOpen && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[100] bg-background/40 backdrop-blur-2xl flex items-start justify-center overflow-y-auto p-4 sm:p-8 animate-slide-in">
+          <button
+            onClick={() => setMoreOpen(false)}
+            aria-label="Close"
+            className="fixed top-4 right-4 z-[101] h-10 w-10 rounded-full bg-background/80 hover:bg-background border border-border flex items-center justify-center shadow-card"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <div className="w-full max-w-2xl mt-12 mb-8 rounded-3xl bg-card/70 border border-white/20 shadow-glow p-6 md:p-8">
+            <h3 className="flex items-center gap-2 text-2xl font-bold mb-4 pr-10">
+              <BookOpen className="h-6 w-6 text-primary" /> Deep dive
+            </h3>
+            {summaryLoading ? (
+              <div className="flex items-center gap-3 py-8 text-muted-foreground">
+                <Loader2 className="h-5 w-5 animate-spin" /> Crafting an interactive summary…
+              </div>
+            ) : (
+              <div className="prose prose-sm max-w-none whitespace-pre-wrap text-foreground leading-relaxed">
+                {summary}
+              </div>
+            )}
+          </div>
+        </div>,
+        document.body,
+      )}
     </div>
   );
 }
