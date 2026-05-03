@@ -242,10 +242,9 @@ function Profile() {
             </div>
           </div>
           <div className="max-w-2xl mx-auto p-5 space-y-6">
-            {/* Cover preview + change */}
-            <div>
-              <Label className="mb-2 block">Cover photo</Label>
-              <div className="relative h-40 sm:h-52 rounded-2xl overflow-hidden border border-border">
+            {/* Cover with centered avatar — same Facebook-style layout as main profile */}
+            <div className="rounded-3xl overflow-hidden border border-border bg-card">
+              <div className="relative h-44 sm:h-56">
                 {cover ? (
                   <img src={cover} alt="Cover" className="absolute inset-0 w-full h-full object-cover" />
                 ) : (
@@ -254,28 +253,33 @@ function Profile() {
                 <button
                   onClick={() => coverRef.current?.click()}
                   disabled={busy}
-                  className="absolute bottom-3 right-3 h-9 px-3 rounded-full bg-background/90 hover:bg-background flex items-center gap-1.5 text-sm font-semibold shadow-soft disabled:opacity-50"
+                  className="absolute top-3 right-3 h-9 px-3 rounded-full bg-background/90 hover:bg-background flex items-center gap-1.5 text-sm font-semibold shadow-soft disabled:opacity-50"
                 >
-                  <ImageIcon className="h-4 w-4" /> Change cover
+                  <ImageIcon className="h-4 w-4" /> <span className="hidden sm:inline">Change cover</span>
                 </button>
-              </div>
-            </div>
 
-            {/* Avatar change */}
-            <div>
-              <Label className="mb-2 block">Profile picture</Label>
-              <div className="flex items-center gap-4">
-                <div className="h-20 w-20 rounded-full overflow-hidden ring-2 ring-border bg-gradient-hero flex items-center justify-center text-white text-2xl font-bold">
-                  {avatar ? (
-                    <img src={avatar} alt="Profile" className="h-full w-full object-cover" />
-                  ) : (
-                    <span>{(displayName || "?").slice(0, 1).toUpperCase()}</span>
-                  )}
+                {/* Centered circular avatar — overlapping the cover */}
+                <div className="absolute left-1/2 -translate-x-1/2 -bottom-14 sm:-bottom-16">
+                  <div className="relative">
+                    <div className="h-28 w-28 sm:h-32 sm:w-32 rounded-full overflow-hidden ring-4 ring-card bg-gradient-hero flex items-center justify-center text-white text-4xl font-bold shadow-glow">
+                      {avatar ? (
+                        <img src={avatar} alt="Profile" className="h-full w-full object-cover" />
+                      ) : (
+                        <span>{(displayName || "?").slice(0, 1).toUpperCase()}</span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => avatarRef.current?.click()}
+                      disabled={busy}
+                      className="absolute bottom-1 right-1 h-9 w-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-soft hover:scale-110 transition-transform disabled:opacity-50 ring-2 ring-card"
+                      aria-label="Change photo"
+                    >
+                      <Camera className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
-                <Button variant="outline" className="rounded-full" onClick={() => avatarRef.current?.click()} disabled={busy}>
-                  <Camera className="h-4 w-4 mr-1" /> Change photo
-                </Button>
               </div>
+              <div className="pt-16 sm:pt-20 pb-4" />
             </div>
 
             <div className="space-y-1.5">
