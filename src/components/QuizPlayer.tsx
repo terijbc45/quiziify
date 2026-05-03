@@ -104,19 +104,19 @@ export function QuizPlayer({
 
   return (
     <div className="space-y-6 animate-slide-in">
+      {/* Floating More button — top right, below header */}
+      <button
+        onClick={openMore}
+        className="fixed top-20 right-4 z-30 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-primary text-primary-foreground hover:opacity-90 text-xs font-bold shadow-glow"
+        aria-label="More info"
+      >
+        <Sparkles className="h-3.5 w-3.5" /> More
+      </button>
+
       <div>
         <div className="flex items-center justify-between mb-2 text-sm gap-2">
           <span className="font-semibold text-primary truncate">{title}</span>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <button
-              onClick={openMore}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 text-xs font-bold shadow-soft transition-all"
-              aria-label="More info"
-            >
-              <Sparkles className="h-3.5 w-3.5" /> More
-            </button>
-            <span className="text-muted-foreground">{idx + 1} / {questions.length}</span>
-          </div>
+          <span className="text-muted-foreground flex-shrink-0">{idx + 1} / {questions.length}</span>
         </div>
         <Progress value={((idx + (answered ? 1 : 0)) / questions.length) * 100} className="h-2" />
       </div>
