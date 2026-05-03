@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      date_captions: {
+        Row: {
+          caption: string
+          created_at: string
+          date: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          caption?: string
+          created_at?: string
+          date: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          caption?: string
+          created_at?: string
+          date?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       level_progress: {
         Row: {
           current_level: number
