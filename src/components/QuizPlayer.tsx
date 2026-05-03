@@ -104,10 +104,10 @@ export function QuizPlayer({
 
   return (
     <div className="space-y-6 animate-slide-in">
-      {/* Floating More button — top right, below header */}
+      {/* Floating More button — directly under the profile avatar in header */}
       <button
         onClick={openMore}
-        className="fixed top-20 right-4 z-30 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-primary text-primary-foreground hover:opacity-90 text-xs font-bold shadow-glow"
+        className="fixed top-[72px] right-4 z-30 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary text-primary-foreground hover:opacity-90 text-xs font-bold shadow-glow"
         aria-label="More info"
       >
         <Sparkles className="h-3.5 w-3.5" /> More
@@ -190,7 +190,7 @@ export function QuizPlayer({
       </div>
 
       {moreOpen && typeof document !== "undefined" && createPortal(
-        <div className="fixed inset-0 z-[100] bg-background/40 backdrop-blur-2xl flex items-start justify-center overflow-y-auto p-4 sm:p-8 animate-slide-in">
+        <div className="fixed inset-0 z-[100] bg-background/30 backdrop-blur-2xl overflow-y-auto animate-slide-in">
           <button
             onClick={() => setMoreOpen(false)}
             aria-label="Close"
@@ -198,16 +198,16 @@ export function QuizPlayer({
           >
             <X className="h-5 w-5" />
           </button>
-          <div className="w-full max-w-2xl mt-12 mb-8 rounded-3xl bg-card/70 border border-white/20 shadow-glow p-6 md:p-8">
-            <h3 className="flex items-center gap-2 text-2xl font-bold mb-4 pr-10">
-              <BookOpen className="h-6 w-6 text-primary" /> Deep dive
+          <div className="max-w-2xl mx-auto px-5 sm:px-8 pt-16 pb-12">
+            <h3 className="flex items-center gap-2 text-3xl font-bold mb-6 pr-10 text-foreground">
+              <BookOpen className="h-7 w-7 text-primary" /> Deep dive
             </h3>
             {summaryLoading ? (
               <div className="flex items-center gap-3 py-8 text-muted-foreground">
                 <Loader2 className="h-5 w-5 animate-spin" /> Crafting an interactive summary…
               </div>
             ) : (
-              <div className="prose prose-sm max-w-none whitespace-pre-wrap text-foreground leading-relaxed">
+              <div className="prose prose-lg max-w-none whitespace-pre-wrap text-foreground leading-relaxed text-base sm:text-lg">
                 {summary}
               </div>
             )}
