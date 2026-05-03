@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Check, X, Loader2, ArrowRight, Trophy, Sparkles, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { createPortal } from "react-dom";
 import { explainQuestion } from "@/server/quiz.functions";
 
 export type QuizQuestion = {
