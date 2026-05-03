@@ -104,10 +104,10 @@ export function QuizPlayer({
 
   return (
     <div className="space-y-6 animate-slide-in">
-      {/* Floating More button — top right, below header */}
+      {/* Floating More button — directly under the profile avatar in header */}
       <button
         onClick={openMore}
-        className="fixed top-20 right-4 z-30 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-primary text-primary-foreground hover:opacity-90 text-xs font-bold shadow-glow"
+        className="fixed top-[72px] right-4 z-30 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary text-primary-foreground hover:opacity-90 text-xs font-bold shadow-glow"
         aria-label="More info"
       >
         <Sparkles className="h-3.5 w-3.5" /> More
