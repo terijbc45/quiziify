@@ -49,6 +49,16 @@ export function QuizPlayer({
 
   useEffect(() => { setIdx(0); setPicked(null); setScore(0); setDone(false); }, [questions]);
 
+  // Lock body scroll while the Deep Dive overlay is open so only the overlay scrolls
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    if (moreOpen) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => { document.body.style.overflow = prev; };
+    }
+  }, [moreOpen]);
+
   if (loading) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 text-muted-foreground">
@@ -104,10 +114,10 @@ export function QuizPlayer({
 
   return (
     <div className="space-y-6 animate-slide-in">
-      {/* Floating More button — directly under the profile avatar in header */}
+      {/* Floating More button — sits directly under the profile avatar in the header */}
       <button
         onClick={openMore}
-        className="fixed top-[72px] right-4 z-30 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary text-primary-foreground hover:opacity-90 text-xs font-bold shadow-glow"
+        className="fixed top-[64px] right-5 z-30 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary text-primary-foreground hover:opacity-90 text-[11px] font-bold shadow-glow"
         aria-label="More info"
       >
         <Sparkles className="h-3.5 w-3.5" /> More
