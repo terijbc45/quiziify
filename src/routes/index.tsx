@@ -1,11 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { TrendingUp, Trophy, Play } from "lucide-react";
+import { TrendingUp, Trophy, Play, CalendarDays, Pencil } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { format } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({ component: Index });
 
@@ -57,30 +62,182 @@ function Home() {
         </div>
       </div>
 
-      <div className="rounded-3xl bg-card p-6 shadow-card border border-border">
-        <h2 className="font-bold text-lg flex items-center gap-2 mb-4">
-          <TrendingUp className="h-4 w-4" /> Your progress
-        </h2>
-        {chart.length === 0 ? (
-          <p className="text-muted-foreground text-sm py-8 text-center">
-            Play Level mode to see your progress here.
-          </p>
-        ) : (
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chart}>
-                <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.92 0.01 280)" />
-                <XAxis dataKey="date" stroke="oklch(0.5 0.02 280)" fontSize={12} />
-                <YAxis stroke="oklch(0.5 0.02 280)" fontSize={12} />
-                <Tooltip contentStyle={{ borderRadius: 12, border: "none", boxShadow: "var(--shadow-card)" }} />
-                <Line type="monotone" dataKey="level" stroke="oklch(0.62 0.22 295)" strokeWidth={3} dot={{ r: 4 }} />
-                <Line type="monotone" dataKey="score" stroke="oklch(0.7 0.18 150)" strokeWidth={3} dot={{ r: 4 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-      </div>
+      <ProgressCarousel chart={chart} />
     </div>
+  );
+}
+
+function ProgressCarousel({ chart }: { chart: { level: number; score: number; date: string }[] }) {
+  const [slide, setSlide] = useState(0);
+  const slides = ["progress", "calendar"] as const;
+
+  return (
+    <div className="rounded-3xl bg-card p-6 shadow-card border border-border">
+      {/* Carousel dots ABOVE the title */}
+      <div className="flex justify-center gap-2 mb-4">
+        {slides.map((s, i) => (
+          <button
+            key={s}
+            onClick={() => setSlide(i)}
+            aria-label={`Go to ${s}`}
+            className={`h-2 rounded-full transition-all ${
+              i === slide ? "w-8 bg-primary" : "w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50"
+            }`}
+          />
+        ))}
+      </div>
+
+      {slide === 0 ? (
+        <>
+          <h2 className="font-bold text-lg flex items-center gap-2 mb-4">
+            <TrendingUp className="h-4 w-4" /> Your progress
+          </h2>
+          {chart.length === 0 ? (
+            <p className="text-muted-foreground text-sm py-8 text-center">
+              Play Level mode to see your progress here.
+            </p>
+          ) : (
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chart}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.92 0.01 280)" />
+                  <XAxis dataKey="date" stroke="oklch(0.5 0.02 280)" fontSize={12} />
+                  <YAxis stroke="oklch(0.5 0.02 280)" fontSize={12} />
+                  <Tooltip contentStyle={{ borderRadius: 12, border: "none", boxShadow: "var(--shadow-card)" }} />
+                  <Line type="monotone" dataKey="level" stroke="oklch(0.62 0.22 295)" strokeWidth={3} dot={{ r: 4 }} />
+                  <Line type="monotone" dataKey="score" stroke="oklch(0.7 0.18 150)" strokeWidth={3} dot={{ r: 4 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </>
+      ) : (
+        <CalendarPanel />
+      )}
+    </div>
+  );
+}
+
+function CalendarPanel() {
+  const { user } = useAuth();
+  const [month, setMonth] = useState<Date>(new Date());
+  const [captions, setCaptions] = useState<Record<string, string>>({});
+  const [selected, setSelected] = useState<Date | undefined>();
+  const [draft, setDraft] = useState("");
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const { from, to } = useMemo(() => {
+    const f = new Date(month.getFullYear(), month.getMonth(), 1);
+    const t = new Date(month.getFullYear(), month.getMonth() + 1, 0);
+    return { from: f.toISOString().slice(0, 10), to: t.toISOString().slice(0, 10) };
+  }, [month]);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("date_captions")
+      .select("date,caption")
+      .eq("user_id", user.id)
+      .gte("date", from)
+      .lte("date", to)
+      .then(({ data }) => {
+        const map: Record<string, string> = {};
+        (data ?? []).forEach((r: any) => { map[r.date] = r.caption; });
+        setCaptions(map);
+      });
+  }, [user, from, to]);
+
+  const key = (d: Date) => format(d, "yyyy-MM-dd");
+
+  const handleSelect = (d: Date | undefined) => {
+    if (!d) return;
+    setSelected(d);
+    setDraft(captions[key(d)] ?? "");
+    setOpen(true);
+  };
+
+  const save = async () => {
+    if (!user || !selected) return;
+    setSaving(true);
+    const k = key(selected);
+    if (draft.trim() === "") {
+      await supabase.from("date_captions").delete().eq("user_id", user.id).eq("date", k);
+      const next = { ...captions };
+      delete next[k];
+      setCaptions(next);
+    } else {
+      const { error } = await supabase
+        .from("date_captions")
+        .upsert({ user_id: user.id, date: k, caption: draft.trim() }, { onConflict: "user_id,date" });
+      if (error) { toast.error("Could not save caption"); setSaving(false); return; }
+      setCaptions({ ...captions, [k]: draft.trim() });
+    }
+    setSaving(false);
+    setOpen(false);
+    toast.success("Saved");
+  };
+
+  return (
+    <>
+      <h2 className="font-bold text-lg flex items-center gap-2 mb-4">
+        <CalendarDays className="h-4 w-4" /> Your calendar
+      </h2>
+      <div className="flex justify-center">
+        <Calendar
+          mode="single"
+          selected={selected}
+          onSelect={handleSelect}
+          month={month}
+          onMonthChange={setMonth}
+          className="pointer-events-auto"
+          components={{
+            DayButton: ({ day, modifiers, ...props }: any) => {
+              const k = key(day.date);
+              const has = !!captions[k];
+              return (
+                <button
+                  {...props}
+                  className={`relative aspect-square w-full rounded-md text-sm hover:bg-accent ${
+                    modifiers?.today ? "bg-accent font-semibold" : ""
+                  } ${modifiers?.selected ? "bg-primary text-primary-foreground" : ""}`}
+                >
+                  {day.date.getDate()}
+                  {has && (
+                    <span className="absolute bottom-1 left-1/2 -translate-x-1/2 h-1.5 w-1.5 rounded-full bg-primary" />
+                  )}
+                </button>
+              );
+            },
+          }}
+        />
+      </div>
+      <p className="text-xs text-muted-foreground text-center mt-3">
+        Tap any date to add an optional caption.
+      </p>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-4 w-4" />
+              {selected ? format(selected, "PPP") : ""}
+            </DialogTitle>
+          </DialogHeader>
+          <Textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="Add a caption (optional)…"
+            rows={4}
+            maxLength={500}
+          />
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button onClick={save} disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
