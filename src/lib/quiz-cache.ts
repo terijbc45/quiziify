@@ -48,7 +48,7 @@ const cache = new Map<string, Promise<{ error: string | null; questions: QuizQue
 
 export function prefetchQuiz(
   cacheKey: string,
-  params: { topic: string; difficulty: "easy" | "intermediate" | "hard"; count: number; level?: number; avoid?: string[] },
+  params: { topic: string; difficulty: "easy" | "intermediate" | "hard"; count: number; level?: number; avoid?: string[]; nonce?: string },
 ) {
   if (cache.has(cacheKey)) return cache.get(cacheKey)!;
   const p = generateQuestions({ data: params }).then((r) => ({
