@@ -23,13 +23,19 @@ function Random() {
   const [error, setError] = useState<string | null>(null);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [endPrompt, setEndPrompt] = useState<null | { score: number; total: number }>(null);
+  const [round, setRound] = useState(0);
 
-  // Prefetch on settings change so Start is near-instant
+  const newNonce = () => `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+  // Prefetch when settings change (initial only)
   useEffect(() => {
     if (!user || started) return;
-    const key = `random:${user.id}:${topic}:${diff}`;
+    const nonce = newNonce();
+    const key = `random:${user.id}:${topic}:${diff}:${nonce}`;
     fetchSeenQuestions(user.id).then((seen) => {
-      prefetchQuiz(key, { topic, difficulty: diff, count: 5, avoid: seen.slice(-100) });
+      prefetchQuiz(key, { topic, difficulty: diff, count: 5, avoid: seen.slice(-150), nonce });
+      // stash the key so start() picks it up
+      (window as any).__randomPrefetchKey = key;
     });
   }, [user, topic, diff, started]);
 
@@ -39,18 +45,23 @@ function Random() {
     setLoading(true);
     setError(null);
     try {
-      const key = `random:${user.id}:${topic}:${diff}`;
-      let promise = consumeCachedQuiz(key);
+      const seen = await fetchSeenQuestions(user.id);
+      let promise: ReturnType<typeof prefetchQuiz> | undefined;
+      const stashed = (window as any).__randomPrefetchKey as string | undefined;
+      if (stashed) {
+        promise = consumeCachedQuiz(stashed);
+        (window as any).__randomPrefetchKey = undefined;
+      }
       if (!promise) {
-        const seen = await fetchSeenQuestions(user.id);
-        promise = prefetchQuiz(key, { topic, difficulty: diff, count: 5, avoid: seen.slice(-100) });
+        const nonce = newNonce();
+        const key = `random:${user.id}:${topic}:${diff}:${nonce}`;
+        promise = prefetchQuiz(key, { topic, difficulty: diff, count: 5, avoid: seen.slice(-150), nonce });
         consumeCachedQuiz(key);
       }
       const aiRes = await promise;
       if (aiRes.error) { setError(aiRes.error); setLoading(false); return; }
 
-      // De-dupe against any seen
-      const seenSet = new Set(await fetchSeenQuestions(user.id));
+      const seenSet = new Set(seen);
       const filtered = aiRes.questions.filter((q) => !seenSet.has(hashQuestion(q.question)));
       let qs: QuizQuestion[] = (filtered.length >= 3 ? filtered : aiRes.questions);
 
@@ -97,6 +108,15 @@ function Random() {
   const playAgain = async () => {
     setEndPrompt(null);
     setQuestions([]);
+    setRound((r) => r + 1);
+    // Force a brand new generation with fresh nonce + freshly fetched seen list
+    if (user) {
+      const seen = await fetchSeenQuestions(user.id);
+      const nonce = newNonce();
+      const key = `random:${user.id}:${topic}:${diff}:${nonce}`;
+      prefetchQuiz(key, { topic, difficulty: diff, count: 5, avoid: seen.slice(-150), nonce });
+      (window as any).__randomPrefetchKey = key;
+    }
     await start();
   };
 
