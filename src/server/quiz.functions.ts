@@ -19,6 +19,7 @@ const Input = z.object({
   count: z.number().min(1).max(10).default(5),
   level: z.number().optional(),
   avoid: z.array(z.string()).max(200).optional(),
+  nonce: z.string().max(64).optional(),
 });
 
 export const generateQuestions = createServerFn({ method: "POST" })
