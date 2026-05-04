@@ -36,7 +36,20 @@ export const generateQuestions = createServerFn({ method: "POST" })
       ? ` Do NOT repeat or paraphrase any of these previously-shown question topics: ${data.avoid.slice(0, 60).map((q) => `"${q.slice(0, 80)}"`).join("; ")}. Pick fresh angles.`
       : "";
 
-    const sysPrompt = `You generate high-quality multiple choice quiz questions. Difficulty: ${data.difficulty}.${levelHint} Topic: ${data.topic === "any" ? "any field — vary widely across science, history, geography, math, language, arts, tech, sports, pop-culture" : data.topic}.${avoidHint} Each question must have exactly 4 options, one correct answer, a one-sentence explanation, and an "emoji" field with a single emoji that visually represents the question subject. Be accurate, clear, varied, and creative.`;
+    const variety = [
+      "obscure facts",
+      "real-world applications",
+      "historical context",
+      "common misconceptions",
+      "surprising connections",
+      "famous figures",
+      "modern discoveries",
+      "edge cases and trivia",
+    ];
+    const angle = variety[Math.floor(Math.random() * variety.length)];
+    const seed = data.nonce ?? `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+    const sysPrompt = `You generate high-quality multiple choice quiz questions. Difficulty: ${data.difficulty}.${levelHint} Topic: ${data.topic === "any" ? "any field — vary widely across science, history, geography, math, language, arts, tech, sports, pop-culture" : data.topic}.${avoidHint} For this batch, lean into: ${angle}. Be unpredictable — never recycle classic textbook examples. Variation seed (use to diversify your picks, do NOT mention it): ${seed}. Each question must have exactly 4 options, one correct answer, a one-sentence explanation, and an "emoji" field with a single emoji that visually represents the question subject. Be accurate, clear, varied, and creative.`;
 
     try {
       const res = await fetch(GATEWAY, {
@@ -44,9 +57,10 @@ export const generateQuestions = createServerFn({ method: "POST" })
         headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
         body: JSON.stringify({
           model: "google/gemini-2.5-flash",
+          temperature: 1.1,
           messages: [
             { role: "system", content: sysPrompt },
-            { role: "user", content: `Generate ${data.count} questions.` },
+            { role: "user", content: `Generate ${data.count} fresh, distinct questions. Avoid anything resembling a previously asked question.` },
           ],
           tools: [
             {
