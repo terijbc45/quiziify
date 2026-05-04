@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { TrendingUp, Trophy, Play, CalendarDays, Pencil } from "lucide-react";
+import { TrendingUp, Trophy, Play, CalendarDays, Pencil, MessageCircle } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
