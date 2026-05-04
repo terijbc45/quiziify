@@ -184,9 +184,6 @@ function CalendarPanel() {
     toast.success("Saved");
   };
 
-  const selectedKey = selected ? key(selected) : null;
-  const selectedCaption = selectedKey ? captions[selectedKey] : "";
-  const [showCaption, setShowCaption] = useState(true);
 
   return (
     <>
