@@ -178,19 +178,23 @@ function CalendarPanel() {
     toast.success("Saved");
   };
 
+  const selectedKey = selected ? key(selected) : null;
+  const selectedCaption = selectedKey ? captions[selectedKey] : "";
+  const [showCaption, setShowCaption] = useState(true);
+
   return (
     <>
       <h2 className="font-bold text-lg flex items-center gap-2 mb-4">
         <CalendarDays className="h-4 w-4" /> Your calendar
       </h2>
-      <div className="flex justify-center">
+      <div className="flex justify-center -mx-2 sm:mx-0">
         <Calendar
           mode="single"
           selected={selected}
-          onSelect={handleSelect}
+          onSelect={(d) => { handleSelect(d); setShowCaption(true); }}
           month={month}
           onMonthChange={setMonth}
-          className="pointer-events-auto"
+          className="pointer-events-auto w-full max-w-[420px] [--cell-size:2.85rem] sm:[--cell-size:3.1rem] text-base"
           components={{
             DayButton: ({ day, modifiers, ...props }: any) => {
               const k = key(day.date);
@@ -198,13 +202,15 @@ function CalendarPanel() {
               return (
                 <button
                   {...props}
-                  className={`relative aspect-square w-full rounded-md text-sm hover:bg-accent ${
-                    modifiers?.today ? "bg-accent font-semibold" : ""
-                  } ${modifiers?.selected ? "bg-primary text-primary-foreground" : ""}`}
+                  className={`relative aspect-square w-full rounded-xl text-base font-medium transition-all hover:bg-accent hover:scale-105 ${
+                    modifiers?.today ? "ring-2 ring-primary/40 font-bold" : ""
+                  } ${modifiers?.selected ? "bg-primary text-primary-foreground shadow-md scale-105" : ""}`}
                 >
                   {day.date.getDate()}
                   {has && (
-                    <span className="absolute bottom-1 left-1/2 -translate-x-1/2 h-1.5 w-1.5 rounded-full bg-primary" />
+                    <span className={`absolute bottom-1.5 left-1/2 -translate-x-1/2 h-1.5 w-1.5 rounded-full ${
+                      modifiers?.selected ? "bg-primary-foreground" : "bg-primary"
+                    }`} />
                   )}
                 </button>
               );
@@ -212,8 +218,43 @@ function CalendarPanel() {
           }}
         />
       </div>
+
+      {/* Instagram-style caption preview for the selected date */}
+      {selected && (
+        <div className="mt-5 rounded-2xl border border-border bg-muted/30 p-4 animate-slide-in">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <p className="text-sm font-semibold">{format(selected, "EEEE, MMM d")}</p>
+            <button
+              onClick={() => setOpen(true)}
+              className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1"
+            >
+              <Pencil className="h-3 w-3" />
+              {selectedCaption ? "Edit" : "Add caption"}
+            </button>
+          </div>
+          {selectedCaption ? (
+            <div>
+              <p className={`text-sm leading-relaxed whitespace-pre-wrap ${showCaption ? "" : "line-clamp-2"}`}>
+                <span className="font-semibold mr-1.5">you</span>
+                {selectedCaption}
+              </p>
+              {selectedCaption.length > 120 && (
+                <button
+                  onClick={() => setShowCaption((s) => !s)}
+                  className="text-xs text-muted-foreground mt-1 hover:text-foreground"
+                >
+                  {showCaption ? "less" : "… more"}
+                </button>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground italic">No caption yet — tap "Add caption" to write one.</p>
+          )}
+        </div>
+      )}
+
       <p className="text-xs text-muted-foreground text-center mt-3">
-        Tap any date to add an optional caption.
+        Tap any date to view or add an optional caption.
       </p>
 
       <Dialog open={open} onOpenChange={setOpen}>
