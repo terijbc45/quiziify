@@ -157,11 +157,6 @@ function CalendarPanel() {
     setOpen(true);
   };
 
-  const openEditor = () => {
-    if (!selected) return;
-    setDraft(captions[key(selected)] ?? "");
-    setOpen(true);
-  };
 
   const save = async () => {
     if (!user || !selected) return;
