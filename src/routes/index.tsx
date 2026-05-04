@@ -154,6 +154,12 @@ function CalendarPanel() {
     if (!d) return;
     setSelected(d);
     setDraft(captions[key(d)] ?? "");
+    // Don't auto-open dialog; show caption preview below instead
+  };
+
+  const openEditor = () => {
+    if (!selected) return;
+    setDraft(captions[key(selected)] ?? "");
     setOpen(true);
   };
 
