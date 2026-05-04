@@ -231,7 +231,7 @@ function CalendarPanel() {
           <div className="flex items-center justify-between gap-2 mb-2">
             <p className="text-sm font-semibold">{format(selected, "EEEE, MMM d")}</p>
             <button
-              onClick={() => setOpen(true)}
+              onClick={openEditor}
               className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1"
             >
               <Pencil className="h-3 w-3" />
