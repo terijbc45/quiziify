@@ -197,7 +197,7 @@ function CalendarPanel() {
         <Calendar
           mode="single"
           selected={selected}
-          onSelect={(d) => { handleSelect(d); setShowCaption(true); }}
+          onSelect={handleSelect}
           month={month}
           onMonthChange={setMonth}
           className="pointer-events-auto w-full max-w-[420px] [--cell-size:2.85rem] sm:[--cell-size:3.1rem] text-base"
@@ -214,9 +214,14 @@ function CalendarPanel() {
                 >
                   {day.date.getDate()}
                   {has && (
-                    <span className={`absolute bottom-1.5 left-1/2 -translate-x-1/2 h-1.5 w-1.5 rounded-full ${
-                      modifiers?.selected ? "bg-primary-foreground" : "bg-primary"
-                    }`} />
+                    <span
+                      aria-label="Has caption"
+                      className={`absolute -top-1 -right-1 inline-flex items-center justify-center h-4 w-4 rounded-full border-2 border-background shadow-sm ${
+                        modifiers?.selected ? "bg-primary-foreground text-primary" : "bg-primary text-primary-foreground"
+                      }`}
+                    >
+                      <MessageCircle className="h-2.5 w-2.5" strokeWidth={2.5} />
+                    </span>
                   )}
                 </button>
               );
@@ -224,40 +229,6 @@ function CalendarPanel() {
           }}
         />
       </div>
-
-      {/* Instagram-style caption preview for the selected date */}
-      {selected && (
-        <div className="mt-5 rounded-2xl border border-border bg-muted/30 p-4 animate-slide-in">
-          <div className="flex items-center justify-between gap-2 mb-2">
-            <p className="text-sm font-semibold">{format(selected, "EEEE, MMM d")}</p>
-            <button
-              onClick={openEditor}
-              className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1"
-            >
-              <Pencil className="h-3 w-3" />
-              {selectedCaption ? "Edit" : "Add caption"}
-            </button>
-          </div>
-          {selectedCaption ? (
-            <div>
-              <p className={`text-sm leading-relaxed whitespace-pre-wrap ${showCaption ? "" : "line-clamp-2"}`}>
-                <span className="font-semibold mr-1.5">you</span>
-                {selectedCaption}
-              </p>
-              {selectedCaption.length > 120 && (
-                <button
-                  onClick={() => setShowCaption((s) => !s)}
-                  className="text-xs text-muted-foreground mt-1 hover:text-foreground"
-                >
-                  {showCaption ? "less" : "… more"}
-                </button>
-              )}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground italic">No caption yet — tap "Add caption" to write one.</p>
-          )}
-        </div>
-      )}
 
       <p className="text-xs text-muted-foreground text-center mt-3">
         Tap any date to view or add an optional caption.
