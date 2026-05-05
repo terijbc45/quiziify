@@ -42,6 +42,8 @@ function Profile() {
   const [progress, setProgress] = useState({ current_level: 1, total_score: 0 });
   const [attempts, setAttempts] = useState(0);
   const [createdCount, setCreatedCount] = useState(0);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [myPosts, setMyPosts] = useState<Array<{ id: string; question: string; topic: string; difficulty: string; image_url: string | null; created_at: string }>>([]);
 
   useEffect(() => {
     if (!user) return;
