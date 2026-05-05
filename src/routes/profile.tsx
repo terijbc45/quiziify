@@ -242,6 +242,60 @@ function Profile() {
         </div>
       </Section>
 
+      <Section title="Your posts" icon={<FileText className="h-4 w-4" />}>
+        {myPosts.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-4">
+            You haven't posted any quizzes yet. <Link to="/create" className="text-primary font-semibold underline">Create one</Link>.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {myPosts.map((p) => (
+              <Link
+                key={p.id}
+                to="/posts"
+                className="flex gap-3 p-3 rounded-2xl border border-border hover:bg-muted/50 transition-colors"
+              >
+                {p.image_url ? (
+                  <img src={p.image_url} alt="" className="h-14 w-14 rounded-xl object-cover flex-shrink-0" />
+                ) : (
+                  <div className="h-14 w-14 rounded-xl bg-gradient-hero flex items-center justify-center text-white flex-shrink-0">
+                    <Sparkles className="h-5 w-5" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm line-clamp-2 leading-snug">{p.question}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {p.topic} · {p.difficulty} · {formatDistanceToNow(new Date(p.created_at), { addSuffix: true })}
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </Section>
+
+      {/* Image preview lightbox — Facebook-style */}
+      {preview && (
+        <div
+          className="fixed inset-0 z-[70] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-slide-in"
+          onClick={() => setPreview(null)}
+        >
+          <button
+            onClick={(e) => { e.stopPropagation(); setPreview(null); }}
+            className="absolute top-4 right-4 h-11 w-11 rounded-full bg-background/20 hover:bg-background/40 backdrop-blur text-white flex items-center justify-center transition-colors"
+            aria-label="Close preview"
+          >
+            <X className="h-6 w-6" />
+          </button>
+          <img
+            src={preview}
+            alt="Preview"
+            onClick={(e) => e.stopPropagation()}
+            className="max-h-[90vh] max-w-[95vw] object-contain rounded-2xl shadow-glow"
+          />
+        </div>
+      )}
+
       {/* Fullscreen edit overlay — covers the entire device screen */}
       {editing && (
         <div className="fixed inset-0 z-[60] bg-background overflow-y-auto animate-slide-in">
