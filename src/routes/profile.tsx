@@ -153,13 +153,19 @@ function Profile() {
           {/* Centered circular avatar */}
           <div className="absolute left-1/2 -translate-x-1/2 -bottom-16 sm:-bottom-20">
             <div className="relative">
-              <div className="h-32 w-32 sm:h-40 sm:w-40 rounded-full overflow-hidden ring-4 ring-card bg-gradient-hero flex items-center justify-center text-white text-5xl font-bold shadow-glow">
+              <button
+                type="button"
+                onClick={() => avatar && setPreview(avatar)}
+                disabled={!avatar}
+                className="h-32 w-32 sm:h-40 sm:w-40 rounded-full overflow-hidden ring-4 ring-card bg-gradient-hero flex items-center justify-center text-white text-5xl font-bold shadow-glow disabled:cursor-default"
+                aria-label="View profile photo"
+              >
                 {avatar ? (
                   <img src={avatar} alt="Profile" className="h-full w-full object-cover" />
                 ) : (
                   <span>{(displayName || "?").slice(0, 1).toUpperCase()}</span>
                 )}
-              </div>
+              </button>
               <button
                 onClick={() => avatarRef.current?.click()}
                 disabled={busy}
