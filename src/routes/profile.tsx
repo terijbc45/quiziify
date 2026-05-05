@@ -129,7 +129,14 @@ function Profile() {
       <div className="rounded-3xl overflow-hidden shadow-card border border-border bg-card">
         <div className="relative h-44 sm:h-56 md:h-64">
           {cover ? (
-            <img src={cover} alt="Cover" className="absolute inset-0 w-full h-full object-cover" />
+            <button
+              type="button"
+              onClick={() => setPreview(cover)}
+              className="absolute inset-0 w-full h-full block"
+              aria-label="View cover photo"
+            >
+              <img src={cover} alt="Cover" className="absolute inset-0 w-full h-full object-cover" />
+            </button>
           ) : (
             <div className="absolute inset-0 bg-gradient-hero" />
           )}
