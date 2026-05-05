@@ -62,6 +62,8 @@ function Profile() {
       .then(({ count }) => setAttempts(count ?? 0));
     supabase.from("user_quizzes").select("id", { count: "exact", head: true }).eq("author_id", user.id)
       .then(({ count }) => setCreatedCount(count ?? 0));
+    supabase.from("user_quizzes").select("id,question,topic,difficulty,image_url,created_at").eq("author_id", user.id).order("created_at", { ascending: false }).limit(20)
+      .then(({ data }) => { if (data) setMyPosts(data as any); });
   }, [user]);
 
   const uploadImage = async (file: File, kind: "avatar" | "cover") => {
