@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { AppShell } from "@/components/AppShell";
@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { Save, Lock, Camera, LogOut, Trophy, TrendingUp, Sparkles, Image as ImageIcon, Pencil } from "lucide-react";
+import { Save, Lock, Camera, LogOut, Trophy, TrendingUp, Sparkles, Image as ImageIcon, Pencil, X, FileText } from "lucide-react";
 import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
 
 export const Route = createFileRoute("/profile")({
   component: () => (
@@ -41,6 +42,8 @@ function Profile() {
   const [progress, setProgress] = useState({ current_level: 1, total_score: 0 });
   const [attempts, setAttempts] = useState(0);
   const [createdCount, setCreatedCount] = useState(0);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [myPosts, setMyPosts] = useState<Array<{ id: string; question: string; topic: string; difficulty: string; image_url: string | null; created_at: string }>>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -59,6 +62,8 @@ function Profile() {
       .then(({ count }) => setAttempts(count ?? 0));
     supabase.from("user_quizzes").select("id", { count: "exact", head: true }).eq("author_id", user.id)
       .then(({ count }) => setCreatedCount(count ?? 0));
+    supabase.from("user_quizzes").select("id,question,topic,difficulty,image_url,created_at").eq("author_id", user.id).order("created_at", { ascending: false }).limit(20)
+      .then(({ data }) => { if (data) setMyPosts(data as any); });
   }, [user]);
 
   const uploadImage = async (file: File, kind: "avatar" | "cover") => {
@@ -124,7 +129,14 @@ function Profile() {
       <div className="rounded-3xl overflow-hidden shadow-card border border-border bg-card">
         <div className="relative h-44 sm:h-56 md:h-64">
           {cover ? (
-            <img src={cover} alt="Cover" className="absolute inset-0 w-full h-full object-cover" />
+            <button
+              type="button"
+              onClick={() => setPreview(cover)}
+              className="absolute inset-0 w-full h-full block"
+              aria-label="View cover photo"
+            >
+              <img src={cover} alt="Cover" className="absolute inset-0 w-full h-full object-cover" />
+            </button>
           ) : (
             <div className="absolute inset-0 bg-gradient-hero" />
           )}
@@ -141,13 +153,19 @@ function Profile() {
           {/* Centered circular avatar */}
           <div className="absolute left-1/2 -translate-x-1/2 -bottom-16 sm:-bottom-20">
             <div className="relative">
-              <div className="h-32 w-32 sm:h-40 sm:w-40 rounded-full overflow-hidden ring-4 ring-card bg-gradient-hero flex items-center justify-center text-white text-5xl font-bold shadow-glow">
+              <button
+                type="button"
+                onClick={() => avatar && setPreview(avatar)}
+                disabled={!avatar}
+                className="h-32 w-32 sm:h-40 sm:w-40 rounded-full overflow-hidden ring-4 ring-card bg-gradient-hero flex items-center justify-center text-white text-5xl font-bold shadow-glow disabled:cursor-default"
+                aria-label="View profile photo"
+              >
                 {avatar ? (
                   <img src={avatar} alt="Profile" className="h-full w-full object-cover" />
                 ) : (
                   <span>{(displayName || "?").slice(0, 1).toUpperCase()}</span>
                 )}
-              </div>
+              </button>
               <button
                 onClick={() => avatarRef.current?.click()}
                 disabled={busy}
@@ -223,6 +241,60 @@ function Profile() {
           </Button>
         </div>
       </Section>
+
+      <Section title="Your posts" icon={<FileText className="h-4 w-4" />}>
+        {myPosts.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-4">
+            You haven't posted any quizzes yet. <Link to="/create" className="text-primary font-semibold underline">Create one</Link>.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {myPosts.map((p) => (
+              <Link
+                key={p.id}
+                to="/posts"
+                className="flex gap-3 p-3 rounded-2xl border border-border hover:bg-muted/50 transition-colors"
+              >
+                {p.image_url ? (
+                  <img src={p.image_url} alt="" className="h-14 w-14 rounded-xl object-cover flex-shrink-0" />
+                ) : (
+                  <div className="h-14 w-14 rounded-xl bg-gradient-hero flex items-center justify-center text-white flex-shrink-0">
+                    <Sparkles className="h-5 w-5" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm line-clamp-2 leading-snug">{p.question}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {p.topic} · {p.difficulty} · {formatDistanceToNow(new Date(p.created_at), { addSuffix: true })}
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </Section>
+
+      {/* Image preview lightbox — Facebook-style */}
+      {preview && (
+        <div
+          className="fixed inset-0 z-[70] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-slide-in"
+          onClick={() => setPreview(null)}
+        >
+          <button
+            onClick={(e) => { e.stopPropagation(); setPreview(null); }}
+            className="absolute top-4 right-4 h-11 w-11 rounded-full bg-background/20 hover:bg-background/40 backdrop-blur text-white flex items-center justify-center transition-colors"
+            aria-label="Close preview"
+          >
+            <X className="h-6 w-6" />
+          </button>
+          <img
+            src={preview}
+            alt="Preview"
+            onClick={(e) => e.stopPropagation()}
+            className="max-h-[90vh] max-w-[95vw] object-contain rounded-2xl shadow-glow"
+          />
+        </div>
+      )}
 
       {/* Fullscreen edit overlay — covers the entire device screen */}
       {editing && (
