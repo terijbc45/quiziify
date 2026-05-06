@@ -196,7 +196,7 @@ function CalendarPanel() {
           components={{
             DayButton: ({ day, modifiers, ...props }: any) => {
               const k = key(day.date);
-              const has = !!captions[k];
+              const cap = captions[k];
               return (
                 <button
                   {...props}
@@ -205,14 +205,12 @@ function CalendarPanel() {
                   } ${modifiers?.selected ? "bg-primary text-primary-foreground shadow-md scale-105" : ""}`}
                 >
                   {day.date.getDate()}
-                  {has && (
+                  {cap && (
                     <span
-                      aria-label="Has caption"
-                      className={`absolute -top-1 -right-1 inline-flex items-center justify-center h-4 w-4 rounded-full border-2 border-background shadow-sm ${
-                        modifiers?.selected ? "bg-primary-foreground text-primary" : "bg-primary text-primary-foreground"
-                      }`}
+                      aria-label={`Caption: ${cap}`}
+                      className="absolute -top-2 left-full -translate-x-1 z-10 max-w-[88px] px-1.5 py-0.5 rounded-lg rounded-bl-sm border border-foreground/70 bg-background text-foreground text-[9px] font-semibold leading-tight shadow-sm truncate pointer-events-none"
                     >
-                      <MessageCircle className="h-2.5 w-2.5" strokeWidth={2.5} />
+                      {cap}
                     </span>
                   )}
                 </button>
