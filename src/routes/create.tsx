@@ -51,6 +51,26 @@ function Create() {
 
   const submit = async () => {
     if (!user) return;
+    // Image-only post path: if an image is uploaded, allow publishing without filling Q/options.
+    const hasAnyText = question.trim() || options.some((o) => o.trim()) || topic.trim();
+    if (imageUrl && !hasAnyText) {
+      setBusy(true);
+      const { error } = await supabase.from("user_quizzes").insert({
+        author_id: user.id,
+        topic: "Image",
+        difficulty: diff,
+        question: "",
+        options: ["", "", "", ""],
+        correct_index: 0,
+        explanation: null,
+        image_url: imageUrl,
+      });
+      setBusy(false);
+      if (error) { toast.error(error.message); return; }
+      toast.success("Image post published!");
+      nav({ to: "/posts" });
+      return;
+    }
     const parsed = schema.safeParse({ topic, question, options, correct_index: correct, explanation, difficulty: diff });
     if (!parsed.success) { toast.error(parsed.error.issues[0].message); return; }
     setBusy(true);

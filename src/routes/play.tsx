@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { Shuffle, Sparkles, ArrowLeft, Newspaper } from "lucide-react";
+import { Shuffle, Sparkles, ArrowLeft, Newspaper, Smile } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -60,6 +60,13 @@ function Play() {
           desc="See quizzes posted by the community, with author info."
           icon={<Newspaper className="h-7 w-7" />}
           gradient="from-emerald-500 to-teal-400"
+        />
+        <ModeCard
+          to="/ramailo"
+          title="Ramailo"
+          desc="Quick, simple & fun general-knowledge questions. No setup."
+          icon={<Smile className="h-7 w-7" />}
+          gradient="from-orange-400 to-pink-500"
         />
       </div>
     </div>

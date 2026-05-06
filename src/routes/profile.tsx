@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { Save, Lock, Camera, LogOut, Trophy, TrendingUp, Sparkles, Image as ImageIcon, Pencil, X, FileText } from "lucide-react";
+import { Save, Lock, Camera, LogOut, Trophy, TrendingUp, Sparkles, Image as ImageIcon, Pencil, X, FileText, Smile, Play } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 
@@ -42,8 +42,9 @@ function Profile() {
   const [progress, setProgress] = useState({ current_level: 1, total_score: 0 });
   const [attempts, setAttempts] = useState(0);
   const [createdCount, setCreatedCount] = useState(0);
-  const [preview, setPreview] = useState<string | null>(null);
-  const [myPosts, setMyPosts] = useState<Array<{ id: string; question: string; topic: string; difficulty: string; image_url: string | null; created_at: string }>>([]);
+  const [preview, setPreview] = useState<{ url: string; shape: "circle" | "cover" } | null>(null);
+  const [myPosts, setMyPosts] = useState<Array<{ id: string; question: string; topic: string; difficulty: string; image_url: string | null; created_at: string; options: string[]; correct_index: number; explanation: string | null }>>([]);
+  const [revealed, setRevealed] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (!user) return;
@@ -62,7 +63,7 @@ function Profile() {
       .then(({ count }) => setAttempts(count ?? 0));
     supabase.from("user_quizzes").select("id", { count: "exact", head: true }).eq("author_id", user.id)
       .then(({ count }) => setCreatedCount(count ?? 0));
-    supabase.from("user_quizzes").select("id,question,topic,difficulty,image_url,created_at").eq("author_id", user.id).order("created_at", { ascending: false }).limit(20)
+    supabase.from("user_quizzes").select("id,question,topic,difficulty,image_url,created_at,options,correct_index,explanation").eq("author_id", user.id).order("created_at", { ascending: false }).limit(20)
       .then(({ data }) => { if (data) setMyPosts(data as any); });
   }, [user]);
 
@@ -131,7 +132,7 @@ function Profile() {
           {cover ? (
             <button
               type="button"
-              onClick={() => setPreview(cover)}
+              onClick={() => setPreview({ url: cover, shape: "cover" })}
               className="absolute inset-0 w-full h-full block"
               aria-label="View cover photo"
             >
@@ -155,7 +156,7 @@ function Profile() {
             <div className="relative">
               <button
                 type="button"
-                onClick={() => avatar && setPreview(avatar)}
+                onClick={() => avatar && setPreview({ url: avatar, shape: "circle" })}
                 disabled={!avatar}
                 className="h-32 w-32 sm:h-40 sm:w-40 rounded-full overflow-hidden ring-4 ring-card bg-gradient-hero flex items-center justify-center text-white text-5xl font-bold shadow-glow disabled:cursor-default"
                 aria-label="View profile photo"
@@ -248,51 +249,95 @@ function Profile() {
             You haven't posted any quizzes yet. <Link to="/create" className="text-primary font-semibold underline">Create one</Link>.
           </p>
         ) : (
-          <div className="space-y-3">
-            {myPosts.map((p) => (
-              <Link
-                key={p.id}
-                to="/posts"
-                className="flex gap-3 p-3 rounded-2xl border border-border hover:bg-muted/50 transition-colors"
-              >
-                {p.image_url ? (
-                  <img src={p.image_url} alt="" className="h-14 w-14 rounded-xl object-cover flex-shrink-0" />
-                ) : (
-                  <div className="h-14 w-14 rounded-xl bg-gradient-hero flex items-center justify-center text-white flex-shrink-0">
-                    <Sparkles className="h-5 w-5" />
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm line-clamp-2 leading-snug">{p.question}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {p.topic} · {p.difficulty} · {formatDistanceToNow(new Date(p.created_at), { addSuffix: true })}
-                  </p>
-                </div>
-              </Link>
-            ))}
+          <div className="space-y-5">
+            {myPosts.map((p) => {
+              const picked = revealed[p.id];
+              const answered = picked !== undefined;
+              const hasQuestion = !!p.question?.trim();
+              return (
+                <article key={p.id} className="rounded-3xl bg-card shadow-card border border-border overflow-hidden">
+                  <header className="p-4 flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full overflow-hidden bg-gradient-hero flex items-center justify-center text-white font-bold ring-2 ring-border">
+                      {avatar ? <img src={avatar} alt="" className="h-full w-full object-cover" /> : <span>{(displayName || "?").slice(0, 1).toUpperCase()}</span>}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold truncate text-sm">{displayName || "You"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDistanceToNow(new Date(p.created_at), { addSuffix: true })} · {p.topic} · {p.difficulty}
+                      </p>
+                    </div>
+                  </header>
+                  {p.image_url && (
+                    <div className="bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center p-6">
+                      <img src={p.image_url} alt="" className="max-h-64 rounded-2xl object-contain" />
+                    </div>
+                  )}
+                  {hasQuestion && (
+                    <div className="p-5">
+                      <h3 className="text-base font-bold mb-3 leading-snug">{p.question}</h3>
+                      <div className="space-y-2">
+                        {p.options.map((opt, i) => {
+                          const isCorrect = i === p.correct_index;
+                          const isPicked = i === picked;
+                          return (
+                            <button
+                              key={i}
+                              disabled={answered}
+                              onClick={() => setRevealed((r) => ({ ...r, [p.id]: i }))}
+                              className={`w-full text-left p-2.5 rounded-2xl border-2 font-medium transition-all text-sm ${
+                                !answered ? "border-border hover:border-primary hover:bg-primary/5" :
+                                isCorrect ? "border-success bg-success/10" :
+                                isPicked ? "border-destructive bg-destructive/10" :
+                                "border-border opacity-60"
+                              }`}
+                            >
+                              {opt}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {answered && p.explanation && (
+                        <div className="mt-3 p-3 rounded-2xl bg-muted text-sm">💡 {p.explanation}</div>
+                      )}
+                    </div>
+                  )}
+                </article>
+              );
+            })}
           </div>
         )}
       </Section>
 
+      <RamailoSection />
+
       {/* Image preview lightbox — Facebook-style */}
       {preview && (
         <div
-          className="fixed inset-0 z-[70] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-slide-in"
+          className="fixed inset-0 z-[70] bg-transparent backdrop-blur-md flex items-center justify-center p-4 animate-slide-in"
           onClick={() => setPreview(null)}
         >
           <button
             onClick={(e) => { e.stopPropagation(); setPreview(null); }}
-            className="absolute top-4 right-4 h-11 w-11 rounded-full bg-background/20 hover:bg-background/40 backdrop-blur text-white flex items-center justify-center transition-colors"
+            className="absolute top-4 right-4 h-11 w-11 rounded-full bg-background/80 hover:bg-background backdrop-blur text-foreground flex items-center justify-center transition-colors shadow-lg z-10"
             aria-label="Close preview"
           >
             <X className="h-6 w-6" />
           </button>
-          <img
-            src={preview}
-            alt="Preview"
-            onClick={(e) => e.stopPropagation()}
-            className="max-h-[90vh] max-w-[95vw] object-contain rounded-2xl shadow-glow"
-          />
+          {preview.shape === "circle" ? (
+            <img
+              src={preview.url}
+              alt="Profile preview"
+              onClick={(e) => e.stopPropagation()}
+              className="h-[min(85vw,85vh)] w-[min(85vw,85vh)] rounded-full object-cover shadow-glow ring-4 ring-background/50"
+            />
+          ) : (
+            <img
+              src={preview.url}
+              alt="Cover preview"
+              onClick={(e) => e.stopPropagation()}
+              className="max-h-[90vh] max-w-[95vw] object-contain rounded-2xl shadow-glow"
+            />
+          )}
         </div>
       )}
 
@@ -392,3 +437,27 @@ function Section({ title, icon, children }: { title: string; icon: React.ReactNo
     </div>
   );
 }
+
+function RamailoSection() {
+  return (
+    <div className="rounded-3xl bg-gradient-to-br from-orange-400 via-pink-500 to-violet-500 p-6 shadow-glow text-white relative overflow-hidden">
+      <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full bg-white/15 blur-2xl" />
+      <div className="relative">
+        <div className="flex items-center gap-2 mb-2">
+          <Smile className="h-5 w-5" />
+          <h2 className="font-bold text-xl">Ramailo</h2>
+        </div>
+        <p className="text-white/90 text-sm leading-snug mb-4">
+          Quick, fun & super-simple general-knowledge questions. Capitals, science, sports & more — fresh every round, sometimes pulled from today's headlines.
+        </p>
+        <Link
+          to="/ramailo"
+          className="inline-flex items-center gap-1.5 bg-white text-foreground font-bold px-5 py-2.5 rounded-full shadow-soft hover:scale-105 transition-transform text-sm"
+        >
+          <Play className="h-4 w-4 fill-current" /> Start Ramailo
+        </Link>
+      </div>
+    </div>
+  );
+}
+

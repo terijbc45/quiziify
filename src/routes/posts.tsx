@@ -336,35 +336,38 @@ function Posts() {
               </div>
             )}
 
-            <div className="p-5">
-              <h2 className="text-lg font-bold mb-4 leading-snug">{p.question}</h2>
-              <div className="space-y-2">
-                {p.options.map((opt, i) => {
-                  const isCorrect = i === p.correct_index;
-                  const isPicked = i === picked;
-                  return (
-                    <button
-                      key={i}
-                      disabled={answered}
-                      onClick={() => setRevealed((r) => ({ ...r, [p.id]: i }))}
-                      className={`w-full text-left p-3 rounded-2xl border-2 font-medium transition-all text-sm ${
-                        !answered ? "border-border hover:border-primary hover:bg-primary/5" :
-                        isCorrect ? "border-success bg-success/10" :
-                        isPicked ? "border-destructive bg-destructive/10" :
-                        "border-border opacity-60"
-                      }`}
-                    >
-                      {opt}
-                    </button>
-                  );
-                })}
-              </div>
-              {answered && p.explanation && (
-                <div className="mt-3 p-3 rounded-2xl bg-muted text-sm">
-                  💡 {p.explanation}
+            {p.question?.trim() && (
+              <div className="p-5">
+                <h2 className="text-lg font-bold mb-4 leading-snug">{p.question}</h2>
+                <div className="space-y-2">
+                  {p.options.map((opt, i) => {
+                    if (!opt?.trim()) return null;
+                    const isCorrect = i === p.correct_index;
+                    const isPicked = i === picked;
+                    return (
+                      <button
+                        key={i}
+                        disabled={answered}
+                        onClick={() => setRevealed((r) => ({ ...r, [p.id]: i }))}
+                        className={`w-full text-left p-3 rounded-2xl border-2 font-medium transition-all text-sm ${
+                          !answered ? "border-border hover:border-primary hover:bg-primary/5" :
+                          isCorrect ? "border-success bg-success/10" :
+                          isPicked ? "border-destructive bg-destructive/10" :
+                          "border-border opacity-60"
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    );
+                  })}
                 </div>
-              )}
-            </div>
+                {answered && p.explanation && (
+                  <div className="mt-3 p-3 rounded-2xl bg-muted text-sm">
+                    💡 {p.explanation}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Instagram-style action bar */}
             <div className="px-5 pb-2 flex items-center gap-1 border-t border-border pt-2">
