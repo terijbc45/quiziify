@@ -43,7 +43,8 @@ function Profile() {
   const [attempts, setAttempts] = useState(0);
   const [createdCount, setCreatedCount] = useState(0);
   const [preview, setPreview] = useState<{ url: string; shape: "circle" | "cover" } | null>(null);
-  const [myPosts, setMyPosts] = useState<Array<{ id: string; question: string; topic: string; difficulty: string; image_url: string | null; created_at: string }>>([]);
+  const [myPosts, setMyPosts] = useState<Array<{ id: string; question: string; topic: string; difficulty: string; image_url: string | null; created_at: string; options: string[]; correct_index: number; explanation: string | null }>>([]);
+  const [revealed, setRevealed] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (!user) return;
@@ -62,7 +63,7 @@ function Profile() {
       .then(({ count }) => setAttempts(count ?? 0));
     supabase.from("user_quizzes").select("id", { count: "exact", head: true }).eq("author_id", user.id)
       .then(({ count }) => setCreatedCount(count ?? 0));
-    supabase.from("user_quizzes").select("id,question,topic,difficulty,image_url,created_at").eq("author_id", user.id).order("created_at", { ascending: false }).limit(20)
+    supabase.from("user_quizzes").select("id,question,topic,difficulty,image_url,created_at,options,correct_index,explanation").eq("author_id", user.id).order("created_at", { ascending: false }).limit(20)
       .then(({ data }) => { if (data) setMyPosts(data as any); });
   }, [user]);
 
@@ -248,31 +249,66 @@ function Profile() {
             You haven't posted any quizzes yet. <Link to="/create" className="text-primary font-semibold underline">Create one</Link>.
           </p>
         ) : (
-          <div className="space-y-3">
-            {myPosts.map((p) => (
-              <Link
-                key={p.id}
-                to="/posts"
-                className="flex gap-3 p-3 rounded-2xl border border-border hover:bg-muted/50 transition-colors"
-              >
-                {p.image_url ? (
-                  <img src={p.image_url} alt="" className="h-14 w-14 rounded-xl object-cover flex-shrink-0" />
-                ) : (
-                  <div className="h-14 w-14 rounded-xl bg-gradient-hero flex items-center justify-center text-white flex-shrink-0">
-                    <Sparkles className="h-5 w-5" />
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm line-clamp-2 leading-snug">{p.question}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {p.topic} · {p.difficulty} · {formatDistanceToNow(new Date(p.created_at), { addSuffix: true })}
-                  </p>
-                </div>
-              </Link>
-            ))}
+          <div className="space-y-5">
+            {myPosts.map((p) => {
+              const picked = revealed[p.id];
+              const answered = picked !== undefined;
+              const hasQuestion = !!p.question?.trim();
+              return (
+                <article key={p.id} className="rounded-3xl bg-card shadow-card border border-border overflow-hidden">
+                  <header className="p-4 flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full overflow-hidden bg-gradient-hero flex items-center justify-center text-white font-bold ring-2 ring-border">
+                      {avatar ? <img src={avatar} alt="" className="h-full w-full object-cover" /> : <span>{(displayName || "?").slice(0, 1).toUpperCase()}</span>}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold truncate text-sm">{displayName || "You"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDistanceToNow(new Date(p.created_at), { addSuffix: true })} · {p.topic} · {p.difficulty}
+                      </p>
+                    </div>
+                  </header>
+                  {p.image_url && (
+                    <div className="bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center p-6">
+                      <img src={p.image_url} alt="" className="max-h-64 rounded-2xl object-contain" />
+                    </div>
+                  )}
+                  {hasQuestion && (
+                    <div className="p-5">
+                      <h3 className="text-base font-bold mb-3 leading-snug">{p.question}</h3>
+                      <div className="space-y-2">
+                        {p.options.map((opt, i) => {
+                          const isCorrect = i === p.correct_index;
+                          const isPicked = i === picked;
+                          return (
+                            <button
+                              key={i}
+                              disabled={answered}
+                              onClick={() => setRevealed((r) => ({ ...r, [p.id]: i }))}
+                              className={`w-full text-left p-2.5 rounded-2xl border-2 font-medium transition-all text-sm ${
+                                !answered ? "border-border hover:border-primary hover:bg-primary/5" :
+                                isCorrect ? "border-success bg-success/10" :
+                                isPicked ? "border-destructive bg-destructive/10" :
+                                "border-border opacity-60"
+                              }`}
+                            >
+                              {opt}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {answered && p.explanation && (
+                        <div className="mt-3 p-3 rounded-2xl bg-muted text-sm">💡 {p.explanation}</div>
+                      )}
+                    </div>
+                  )}
+                </article>
+              );
+            })}
           </div>
         )}
       </Section>
+
+      <RamailoSection />
 
       {/* Image preview lightbox — Facebook-style */}
       {preview && (
