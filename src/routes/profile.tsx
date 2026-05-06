@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { Save, Lock, Camera, LogOut, Trophy, TrendingUp, Sparkles, Image as ImageIcon, Pencil, X, FileText } from "lucide-react";
+import { Save, Lock, Camera, LogOut, Trophy, TrendingUp, Sparkles, Image as ImageIcon, Pencil, X, FileText, Smile, Play } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 
@@ -437,3 +437,27 @@ function Section({ title, icon, children }: { title: string; icon: React.ReactNo
     </div>
   );
 }
+
+function RamailoSection() {
+  return (
+    <div className="rounded-3xl bg-gradient-to-br from-orange-400 via-pink-500 to-violet-500 p-6 shadow-glow text-white relative overflow-hidden">
+      <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full bg-white/15 blur-2xl" />
+      <div className="relative">
+        <div className="flex items-center gap-2 mb-2">
+          <Smile className="h-5 w-5" />
+          <h2 className="font-bold text-xl">Ramailo</h2>
+        </div>
+        <p className="text-white/90 text-sm leading-snug mb-4">
+          Quick, fun & super-simple general-knowledge questions. Capitals, science, sports & more — fresh every round, sometimes pulled from today's headlines.
+        </p>
+        <Link
+          to="/ramailo"
+          className="inline-flex items-center gap-1.5 bg-white text-foreground font-bold px-5 py-2.5 rounded-full shadow-soft hover:scale-105 transition-transform text-sm"
+        >
+          <Play className="h-4 w-4 fill-current" /> Start Ramailo
+        </Link>
+      </div>
+    </div>
+  );
+}
+
