@@ -131,7 +131,7 @@ function Profile() {
           {cover ? (
             <button
               type="button"
-              onClick={() => setPreview(cover)}
+              onClick={() => setPreview({ url: cover, shape: "cover" })}
               className="absolute inset-0 w-full h-full block"
               aria-label="View cover photo"
             >
@@ -155,7 +155,7 @@ function Profile() {
             <div className="relative">
               <button
                 type="button"
-                onClick={() => avatar && setPreview(avatar)}
+                onClick={() => avatar && setPreview({ url: avatar, shape: "circle" })}
                 disabled={!avatar}
                 className="h-32 w-32 sm:h-40 sm:w-40 rounded-full overflow-hidden ring-4 ring-card bg-gradient-hero flex items-center justify-center text-white text-5xl font-bold shadow-glow disabled:cursor-default"
                 aria-label="View profile photo"
@@ -277,22 +277,31 @@ function Profile() {
       {/* Image preview lightbox — Facebook-style */}
       {preview && (
         <div
-          className="fixed inset-0 z-[70] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-slide-in"
+          className="fixed inset-0 z-[70] bg-transparent backdrop-blur-md flex items-center justify-center p-4 animate-slide-in"
           onClick={() => setPreview(null)}
         >
           <button
             onClick={(e) => { e.stopPropagation(); setPreview(null); }}
-            className="absolute top-4 right-4 h-11 w-11 rounded-full bg-background/20 hover:bg-background/40 backdrop-blur text-white flex items-center justify-center transition-colors"
+            className="absolute top-4 right-4 h-11 w-11 rounded-full bg-background/80 hover:bg-background backdrop-blur text-foreground flex items-center justify-center transition-colors shadow-lg z-10"
             aria-label="Close preview"
           >
             <X className="h-6 w-6" />
           </button>
-          <img
-            src={preview}
-            alt="Preview"
-            onClick={(e) => e.stopPropagation()}
-            className="max-h-[90vh] max-w-[95vw] object-contain rounded-2xl shadow-glow"
-          />
+          {preview.shape === "circle" ? (
+            <img
+              src={preview.url}
+              alt="Profile preview"
+              onClick={(e) => e.stopPropagation()}
+              className="h-[min(85vw,85vh)] w-[min(85vw,85vh)] rounded-full object-cover shadow-glow ring-4 ring-background/50"
+            />
+          ) : (
+            <img
+              src={preview.url}
+              alt="Cover preview"
+              onClick={(e) => e.stopPropagation()}
+              className="max-h-[90vh] max-w-[95vw] object-contain rounded-2xl shadow-glow"
+            />
+          )}
         </div>
       )}
 
