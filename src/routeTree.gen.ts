@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as RemindersRouteImport } from './routes/reminders'
 import { Route as RandomRouteImport } from './routes/random'
+import { Route as RamailoRouteImport } from './routes/ramailo'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PostsRouteImport } from './routes/posts'
 import { Route as PlayRouteImport } from './routes/play'
@@ -27,6 +28,11 @@ const RemindersRoute = RemindersRouteImport.update({
 const RandomRoute = RandomRouteImport.update({
   id: '/random',
   path: '/random',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RamailoRoute = RamailoRouteImport.update({
+  id: '/ramailo',
+  path: '/ramailo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -73,6 +79,7 @@ export interface FileRoutesByFullPath {
   '/play': typeof PlayRoute
   '/posts': typeof PostsRoute
   '/profile': typeof ProfileRoute
+  '/ramailo': typeof RamailoRoute
   '/random': typeof RandomRoute
   '/reminders': typeof RemindersRoute
 }
@@ -84,6 +91,7 @@ export interface FileRoutesByTo {
   '/play': typeof PlayRoute
   '/posts': typeof PostsRoute
   '/profile': typeof ProfileRoute
+  '/ramailo': typeof RamailoRoute
   '/random': typeof RandomRoute
   '/reminders': typeof RemindersRoute
 }
@@ -96,6 +104,7 @@ export interface FileRoutesById {
   '/play': typeof PlayRoute
   '/posts': typeof PostsRoute
   '/profile': typeof ProfileRoute
+  '/ramailo': typeof RamailoRoute
   '/random': typeof RandomRoute
   '/reminders': typeof RemindersRoute
 }
@@ -109,6 +118,7 @@ export interface FileRouteTypes {
     | '/play'
     | '/posts'
     | '/profile'
+    | '/ramailo'
     | '/random'
     | '/reminders'
   fileRoutesByTo: FileRoutesByTo
@@ -120,6 +130,7 @@ export interface FileRouteTypes {
     | '/play'
     | '/posts'
     | '/profile'
+    | '/ramailo'
     | '/random'
     | '/reminders'
   id:
@@ -131,6 +142,7 @@ export interface FileRouteTypes {
     | '/play'
     | '/posts'
     | '/profile'
+    | '/ramailo'
     | '/random'
     | '/reminders'
   fileRoutesById: FileRoutesById
@@ -143,6 +155,7 @@ export interface RootRouteChildren {
   PlayRoute: typeof PlayRoute
   PostsRoute: typeof PostsRoute
   ProfileRoute: typeof ProfileRoute
+  RamailoRoute: typeof RamailoRoute
   RandomRoute: typeof RandomRoute
   RemindersRoute: typeof RemindersRoute
 }
@@ -161,6 +174,13 @@ declare module '@tanstack/react-router' {
       path: '/random'
       fullPath: '/random'
       preLoaderRoute: typeof RandomRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ramailo': {
+      id: '/ramailo'
+      path: '/ramailo'
+      fullPath: '/ramailo'
+      preLoaderRoute: typeof RamailoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -223,6 +243,7 @@ const rootRouteChildren: RootRouteChildren = {
   PlayRoute: PlayRoute,
   PostsRoute: PostsRoute,
   ProfileRoute: ProfileRoute,
+  RamailoRoute: RamailoRoute,
   RandomRoute: RandomRoute,
   RemindersRoute: RemindersRoute,
 }
