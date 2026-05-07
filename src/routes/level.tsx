@@ -65,6 +65,7 @@ function LevelMode() {
         count: 5,
         level: lvl,
         avoid: seen.slice(-100),
+        includeLatest: Math.random() < 0.4,
       });
       consumeCachedQuiz(key);
     }
