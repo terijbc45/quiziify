@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { fetchLatestSnippets } from "./firecrawl.server";
 
 const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
@@ -20,6 +21,7 @@ const Input = z.object({
   level: z.number().optional(),
   avoid: z.array(z.string()).max(200).optional(),
   nonce: z.string().max(64).optional(),
+  includeLatest: z.boolean().optional(),
 });
 
 export const generateQuestions = createServerFn({ method: "POST" })
