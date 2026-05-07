@@ -59,7 +59,7 @@ export const generateQuestions = createServerFn({ method: "POST" })
       }
     }
 
-    const sysPrompt = `You generate high-quality multiple choice quiz questions. Difficulty: ${data.difficulty}.${levelHint} Topic: ${data.topic === "any" ? "any field — vary widely across science, history, geography, math, language, arts, tech, sports, pop-culture" : data.topic}.${avoidHint} For this batch, lean into: ${angle}. Be unpredictable — never recycle classic textbook examples. Variation seed (use to diversify your picks, do NOT mention it): ${seed}.${latestBlock} Each question must have exactly 4 options, one correct answer, a one-sentence explanation, and an "emoji" field with a single emoji that visually represents the question subject. Be accurate, clear, varied, and creative.`;
+    const sysPrompt = `You generate high-quality multiple choice quiz questions. Difficulty: ${data.difficulty}.${levelHint} Topic: ${data.topic === "any" ? "any field — vary widely across science, history, geography, math, language, arts, tech, sports, pop-culture" : data.topic}.${avoidHint} For this batch, lean into: ${angle}. Be unpredictable — never recycle classic textbook examples. Variation seed (use to diversify your picks, do NOT mention it): ${seed}.${latestBlock}\n\nFORMAT RULES (strict): Questions can be detailed and descriptive (one or two sentences, up to ~220 chars, with rich context). BUT each of the 4 answer options MUST be SHORT — ideally 1-3 words, never more than 5 words. Avoid full sentences in options. Provide a single emoji that visually represents the subject and a one-sentence explanation. Be accurate, clear, varied, and creative.`;
 
     try {
       const res = await fetch(GATEWAY, {
