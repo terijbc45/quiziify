@@ -61,9 +61,20 @@ export function QuizPlayer({
 
   if (loading) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 text-muted-foreground">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="font-medium">Preparing your quiz…</p>
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-5">
+        <div className="relative">
+          <div className="absolute inset-0 rounded-full bg-primary/30 blur-2xl animate-pulse" />
+          <div className="relative text-6xl animate-bounce">🧠</div>
+        </div>
+        <div className="flex items-center gap-2 text-primary">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          <p className="font-bold text-lg">Preparing Questions</p>
+          <span className="inline-flex gap-0.5">
+            <span className="animate-bounce [animation-delay:0ms]">.</span>
+            <span className="animate-bounce [animation-delay:150ms]">.</span>
+            <span className="animate-bounce [animation-delay:300ms]">.</span>
+          </span>
+        </div>
       </div>
     );
   }
