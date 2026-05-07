@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
-import { QuizPlayer, type QuizQuestion } from "@/components/QuizPlayer";
+import { type QuizQuestion } from "@/components/QuizPlayer";
+import { RamailoPlayer } from "@/components/RamailoPlayer";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
