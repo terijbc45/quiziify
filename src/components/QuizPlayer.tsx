@@ -144,11 +144,13 @@ export function QuizPlayer({
 
       <div className="rounded-3xl bg-card shadow-card border border-border overflow-hidden">
         {/* Visual header — emoji graphic or image */}
-        <div className={cn("relative bg-gradient-to-br flex items-center justify-center p-8 min-h-[180px]", grad)}>
+        <div className={cn("relative bg-gradient-to-br flex items-center justify-center p-8 min-h-[180px] overflow-hidden", grad)}>
+          <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full bg-white/30 blur-3xl animate-pulse" />
+          <div className="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-white/20 blur-3xl animate-pulse [animation-delay:600ms]" />
           {q.image_url ? (
-            <img src={q.image_url} alt="" className="max-h-48 rounded-2xl object-contain" />
+            <img src={q.image_url} alt="" className="relative max-h-48 rounded-2xl object-contain animate-scale-in" />
           ) : (
-            <div className="text-7xl md:text-8xl select-none animate-slide-in" aria-hidden>
+            <div key={idx} className="relative text-7xl md:text-8xl select-none animate-scale-in drop-shadow-lg" aria-hidden>
               {q.emoji || "🧠"}
             </div>
           )}
@@ -160,8 +162,8 @@ export function QuizPlayer({
             Created by <span className="font-semibold text-primary">{q.author}</span>
           </p>
         )}
-        <h2 className="text-xl md:text-2xl font-bold mb-6 leading-snug">{q.question}</h2>
-        <div className="space-y-3">
+        <h2 className="text-xl md:text-2xl font-bold mb-6 leading-snug animate-fade-in">{q.question}</h2>
+        <div className="grid grid-cols-2 gap-3">
           {q.options.map((opt, i) => {
             const isCorrect = i === q.correct_index;
             const isPicked = i === picked;
@@ -173,17 +175,18 @@ export function QuizPlayer({
                   setPicked(i);
                   if (i === q.correct_index) setScore((s) => s + 1);
                 }}
+                style={{ animationDelay: `${i * 60}ms` }}
                 className={cn(
-                  "w-full text-left p-4 rounded-2xl border-2 font-medium transition-all flex items-center justify-between",
-                  !answered && "border-border hover:border-primary hover:bg-primary/5 cursor-pointer",
-                  answered && isCorrect && "border-success bg-success/10 text-success-foreground",
-                  answered && isPicked && !isCorrect && "border-destructive bg-destructive/10",
+                  "relative min-h-[64px] p-3 rounded-2xl border-2 font-semibold text-sm sm:text-base transition-all flex items-center justify-center text-center animate-scale-in",
+                  !answered && "border-border hover:border-primary hover:bg-primary/5 hover:scale-[1.03] active:scale-95 cursor-pointer",
+                  answered && isCorrect && "border-success bg-success/15 text-success-foreground scale-[1.02]",
+                  answered && isPicked && !isCorrect && "border-destructive bg-destructive/15",
                   answered && !isPicked && !isCorrect && "border-border opacity-50",
                 )}
               >
-                <span>{opt}</span>
-                {answered && isCorrect && <Check className="h-5 w-5 text-success" />}
-                {answered && isPicked && !isCorrect && <X className="h-5 w-5 text-destructive" />}
+                <span className="line-clamp-2 leading-tight">{opt}</span>
+                {answered && isCorrect && <Check className="absolute top-1.5 right-1.5 h-4 w-4 text-success" />}
+                {answered && isPicked && !isCorrect && <X className="absolute top-1.5 right-1.5 h-4 w-4 text-destructive" />}
               </button>
             );
           })}
