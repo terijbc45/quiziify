@@ -44,7 +44,7 @@ function LevelMode() {
     const key = `level:${user.id}:${currentLevel}`;
     fetchSeenQuestions(user.id).then((seen) => {
       const avoid = seen.slice(-100);
-      prefetchQuiz(key, { topic: "any", difficulty: difficultyForLevel(currentLevel), count: 5, level: currentLevel, avoid });
+      prefetchQuiz(key, { topic: "any", difficulty: difficultyForLevel(currentLevel), count: 5, level: currentLevel, avoid, includeLatest: Math.random() < 0.4 });
     });
   }, [user, currentLevel]);
 

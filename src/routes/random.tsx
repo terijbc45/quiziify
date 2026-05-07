@@ -33,7 +33,7 @@ function Random() {
     const nonce = newNonce();
     const key = `random:${user.id}:${topic}:${diff}:${nonce}`;
     fetchSeenQuestions(user.id).then((seen) => {
-      prefetchQuiz(key, { topic, difficulty: diff, count: 5, avoid: seen.slice(-150), nonce });
+      prefetchQuiz(key, { topic, difficulty: diff, count: 5, avoid: seen.slice(-150), nonce, includeLatest: Math.random() < 0.4 });
       // stash the key so start() picks it up
       (window as any).__randomPrefetchKey = key;
     });
@@ -55,7 +55,7 @@ function Random() {
       if (!promise) {
         const nonce = newNonce();
         const key = `random:${user.id}:${topic}:${diff}:${nonce}`;
-        promise = prefetchQuiz(key, { topic, difficulty: diff, count: 5, avoid: seen.slice(-150), nonce });
+        promise = prefetchQuiz(key, { topic, difficulty: diff, count: 5, avoid: seen.slice(-150), nonce, includeLatest: Math.random() < 0.4 });
         consumeCachedQuiz(key);
       }
       const aiRes = await promise;
@@ -114,7 +114,7 @@ function Random() {
       const seen = await fetchSeenQuestions(user.id);
       const nonce = newNonce();
       const key = `random:${user.id}:${topic}:${diff}:${nonce}`;
-      prefetchQuiz(key, { topic, difficulty: diff, count: 5, avoid: seen.slice(-150), nonce });
+      prefetchQuiz(key, { topic, difficulty: diff, count: 5, avoid: seen.slice(-150), nonce, includeLatest: Math.random() < 0.4 });
       (window as any).__randomPrefetchKey = key;
     }
     await start();
