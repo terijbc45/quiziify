@@ -12,38 +12,14 @@ const Question = z.object({
 });
 const QuestionSet = z.object({ questions: z.array(Question).min(1) });
 
+import { fetchLatestSnippets } from "./firecrawl.server";
+
 const Input = z.object({
   count: z.number().min(1).max(10).default(5),
   avoid: z.array(z.string()).max(200).optional(),
   nonce: z.string().max(64).optional(),
   includeLatest: z.boolean().optional(),
 });
-
-async function fetchLatestSnippets(): Promise<string> {
-  const key = process.env.FIRECRAWL_API_KEY;
-  if (!key) return "";
-  try {
-    const queries = [
-      "latest world news today",
-      "trending science discovery this week",
-      "biggest sports headline today",
-    ];
-    const q = queries[Math.floor(Math.random() * queries.length)];
-    const res = await fetch("https://api.firecrawl.dev/v2/search", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ query: q, limit: 4, tbs: "qdr:w" }),
-    });
-    if (!res.ok) return "";
-    const json = await res.json();
-    const items = (json?.data?.web ?? json?.data ?? []).slice(0, 4);
-    return items
-      .map((i: any) => `- ${i.title ?? ""}: ${i.description ?? i.snippet ?? ""}`)
-      .join("\n");
-  } catch {
-    return "";
-  }
-}
 
 export const generateRamailoQuestions = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => Input.parse(input))
