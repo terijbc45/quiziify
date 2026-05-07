@@ -112,7 +112,7 @@ function LevelMode() {
       const nextL = activeLevel + 1;
       const seen = await fetchSeenQuestions(user.id);
       prefetchQuiz(`level:${user.id}:${nextL}`, {
-        topic: "any", difficulty: difficultyForLevel(nextL), count: 5, level: nextL, avoid: seen.slice(-100),
+        topic: "any", difficulty: difficultyForLevel(nextL), count: 5, level: nextL, avoid: seen.slice(-100), includeLatest: Math.random() < 0.4,
       });
     }
   };
