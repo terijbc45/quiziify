@@ -41,7 +41,7 @@ export const generateRamailoQuestions = createServerFn({ method: "POST" })
       }
     }
 
-    const sysPrompt = `You generate VERY SIMPLE, fun, super-popular general-knowledge ("Ramailo") MCQs. Think: "What is the capital of France?", "What is a network of networks?", "Who painted the Mona Lisa?", "Which planet is the Red Planet?". Mix everyday categories: world capitals, famous people, basic science, sports, movies, food, animals, geography, simple tech, history milestones. Keep each question short (under 90 chars). Make options short and clearly distinct. Be light and friendly.${avoidHint}${latestBlock}\n\nVariation seed (do not mention): ${seed}. Each question must have exactly 4 options, one correct answer, a brief one-sentence explanation, and an emoji.`;
+    const sysPrompt = `You generate VERY SIMPLE, fun, super-popular general-knowledge ("Ramailo") MCQs. Think: "Capital of France?", "Red planet?", "Mona Lisa painter?". CRITICAL RULES: (1) Each question must be SHORT — under 60 characters, ideally a quick phrase. (2) Each of the 4 options must be ONE or TWO words MAX (e.g. "Paris", "Mars", "Da Vinci", "Blue whale"). NEVER long phrases. (3) Pick a vivid expressive emoji that strongly hints at the subject. Mix categories: capitals, famous people, basic science, sports, movies, food, animals, geography, simple tech, history.${avoidHint}${latestBlock}\n\nVariation seed (do not mention): ${seed}. Each item: short question, 4 ultra-short options, correct_index, one-sentence explanation, emoji.`;
 
     try {
       const res = await fetch(GATEWAY, {
