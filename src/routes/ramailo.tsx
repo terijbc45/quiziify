@@ -82,11 +82,10 @@ function Ramailo() {
             <Sparkles className="h-4 w-4 text-primary" />
             <span>Ramailo · simple, fun general-knowledge questions</span>
           </div>
-          <QuizPlayer
+          <RamailoPlayer
             loading={loading}
             error={error}
             questions={questions}
-            title="Ramailo · easy"
             onFinish={finish}
             onRetry={load}
           />
