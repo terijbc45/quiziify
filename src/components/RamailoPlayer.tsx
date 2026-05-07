@@ -50,10 +50,20 @@ export function RamailoPlayer({
 
   if (loading) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
-        <div className="text-6xl animate-bounce">🎲</div>
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="font-medium text-muted-foreground">Mixing some fun questions…</p>
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-5">
+        <div className="relative">
+          <span className="absolute inset-0 rounded-full bg-pink-400/30 blur-2xl animate-pulse" />
+          <div className="relative text-7xl animate-bounce">🎲</div>
+        </div>
+        <div className="flex items-center gap-2 text-primary">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          <p className="font-bold text-lg">Preparing Questions</p>
+          <span className="inline-flex gap-0.5 font-bold text-xl">
+            <span className="animate-bounce [animation-delay:0ms]">.</span>
+            <span className="animate-bounce [animation-delay:150ms]">.</span>
+            <span className="animate-bounce [animation-delay:300ms]">.</span>
+          </span>
+        </div>
       </div>
     );
   }
