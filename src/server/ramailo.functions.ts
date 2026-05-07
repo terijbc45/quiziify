@@ -12,38 +12,14 @@ const Question = z.object({
 });
 const QuestionSet = z.object({ questions: z.array(Question).min(1) });
 
+import { fetchLatestSnippets } from "./firecrawl.server";
+
 const Input = z.object({
   count: z.number().min(1).max(10).default(5),
   avoid: z.array(z.string()).max(200).optional(),
   nonce: z.string().max(64).optional(),
   includeLatest: z.boolean().optional(),
 });
-
-async function fetchLatestSnippets(): Promise<string> {
-  const key = process.env.FIRECRAWL_API_KEY;
-  if (!key) return "";
-  try {
-    const queries = [
-      "latest world news today",
-      "trending science discovery this week",
-      "biggest sports headline today",
-    ];
-    const q = queries[Math.floor(Math.random() * queries.length)];
-    const res = await fetch("https://api.firecrawl.dev/v2/search", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ query: q, limit: 4, tbs: "qdr:w" }),
-    });
-    if (!res.ok) return "";
-    const json = await res.json();
-    const items = (json?.data?.web ?? json?.data ?? []).slice(0, 4);
-    return items
-      .map((i: any) => `- ${i.title ?? ""}: ${i.description ?? i.snippet ?? ""}`)
-      .join("\n");
-  } catch {
-    return "";
-  }
-}
 
 export const generateRamailoQuestions = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => Input.parse(input))
@@ -65,7 +41,7 @@ export const generateRamailoQuestions = createServerFn({ method: "POST" })
       }
     }
 
-    const sysPrompt = `You generate VERY SIMPLE, fun, super-popular general-knowledge ("Ramailo") MCQs. Think: "What is the capital of France?", "What is a network of networks?", "Who painted the Mona Lisa?", "Which planet is the Red Planet?". Mix everyday categories: world capitals, famous people, basic science, sports, movies, food, animals, geography, simple tech, history milestones. Keep each question short (under 90 chars). Make options short and clearly distinct. Be light and friendly.${avoidHint}${latestBlock}\n\nVariation seed (do not mention): ${seed}. Each question must have exactly 4 options, one correct answer, a brief one-sentence explanation, and an emoji.`;
+    const sysPrompt = `You generate VERY SIMPLE, fun, super-popular general-knowledge ("Ramailo") MCQs. Think: "Capital of France?", "Red planet?", "Mona Lisa painter?". CRITICAL RULES: (1) Each question must be SHORT — under 60 characters, ideally a quick phrase. (2) Each of the 4 options must be ONE or TWO words MAX (e.g. "Paris", "Mars", "Da Vinci", "Blue whale"). NEVER long phrases. (3) Pick a vivid expressive emoji that strongly hints at the subject. Mix categories: capitals, famous people, basic science, sports, movies, food, animals, geography, simple tech, history.${avoidHint}${latestBlock}\n\nVariation seed (do not mention): ${seed}. Each item: short question, 4 ultra-short options, correct_index, one-sentence explanation, emoji.`;
 
     try {
       const res = await fetch(GATEWAY, {

@@ -44,7 +44,7 @@ function LevelMode() {
     const key = `level:${user.id}:${currentLevel}`;
     fetchSeenQuestions(user.id).then((seen) => {
       const avoid = seen.slice(-100);
-      prefetchQuiz(key, { topic: "any", difficulty: difficultyForLevel(currentLevel), count: 5, level: currentLevel, avoid });
+      prefetchQuiz(key, { topic: "any", difficulty: difficultyForLevel(currentLevel), count: 5, level: currentLevel, avoid, includeLatest: Math.random() < 0.4 });
     });
   }, [user, currentLevel]);
 
@@ -65,6 +65,7 @@ function LevelMode() {
         count: 5,
         level: lvl,
         avoid: seen.slice(-100),
+        includeLatest: Math.random() < 0.4,
       });
       consumeCachedQuiz(key);
     }
@@ -111,7 +112,7 @@ function LevelMode() {
       const nextL = activeLevel + 1;
       const seen = await fetchSeenQuestions(user.id);
       prefetchQuiz(`level:${user.id}:${nextL}`, {
-        topic: "any", difficulty: difficultyForLevel(nextL), count: 5, level: nextL, avoid: seen.slice(-100),
+        topic: "any", difficulty: difficultyForLevel(nextL), count: 5, level: nextL, avoid: seen.slice(-100), includeLatest: Math.random() < 0.4,
       });
     }
   };

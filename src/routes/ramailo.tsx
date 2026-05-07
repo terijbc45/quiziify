@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
-import { QuizPlayer, type QuizQuestion } from "@/components/QuizPlayer";
+import { type QuizQuestion } from "@/components/QuizPlayer";
+import { RamailoPlayer } from "@/components/RamailoPlayer";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -28,7 +29,7 @@ function Ramailo() {
     setQuestions([]);
     try {
       const seen = await fetchSeenQuestions(user.id);
-      const includeLatest = Math.random() < 0.5;
+      const includeLatest = Math.random() < 0.7;
       const r = await generateRamailoQuestions({
         data: { count: 5, avoid: seen.slice(-150), nonce: newNonce(), includeLatest },
       });
@@ -81,11 +82,10 @@ function Ramailo() {
             <Sparkles className="h-4 w-4 text-primary" />
             <span>Ramailo · simple, fun general-knowledge questions</span>
           </div>
-          <QuizPlayer
+          <RamailoPlayer
             loading={loading}
             error={error}
             questions={questions}
-            title="Ramailo · easy"
             onFinish={finish}
             onRetry={load}
           />

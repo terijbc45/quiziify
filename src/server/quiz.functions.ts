@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { fetchLatestSnippets } from "./firecrawl.server";
 
 const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
@@ -20,6 +21,7 @@ const Input = z.object({
   level: z.number().optional(),
   avoid: z.array(z.string()).max(200).optional(),
   nonce: z.string().max(64).optional(),
+  includeLatest: z.boolean().optional(),
 });
 
 export const generateQuestions = createServerFn({ method: "POST" })
@@ -49,7 +51,15 @@ export const generateQuestions = createServerFn({ method: "POST" })
     const angle = variety[Math.floor(Math.random() * variety.length)];
     const seed = data.nonce ?? `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
-    const sysPrompt = `You generate high-quality multiple choice quiz questions. Difficulty: ${data.difficulty}.${levelHint} Topic: ${data.topic === "any" ? "any field — vary widely across science, history, geography, math, language, arts, tech, sports, pop-culture" : data.topic}.${avoidHint} For this batch, lean into: ${angle}. Be unpredictable — never recycle classic textbook examples. Variation seed (use to diversify your picks, do NOT mention it): ${seed}. Each question must have exactly 4 options, one correct answer, a one-sentence explanation, and an "emoji" field with a single emoji that visually represents the question subject. Be accurate, clear, varied, and creative.`;
+    let latestBlock = "";
+    if (data.includeLatest) {
+      const snippets = await fetchLatestSnippets(data.topic);
+      if (snippets) {
+        latestBlock = `\n\nFor 1-2 of the questions, draw inspiration from these REAL recent headlines (paraphrase, never copy verbatim):\n${snippets}`;
+      }
+    }
+
+    const sysPrompt = `You generate high-quality multiple choice quiz questions. Difficulty: ${data.difficulty}.${levelHint} Topic: ${data.topic === "any" ? "any field — vary widely across science, history, geography, math, language, arts, tech, sports, pop-culture" : data.topic}.${avoidHint} For this batch, lean into: ${angle}. Be unpredictable — never recycle classic textbook examples. Variation seed (use to diversify your picks, do NOT mention it): ${seed}.${latestBlock} Each question must have exactly 4 options, one correct answer, a one-sentence explanation, and an "emoji" field with a single emoji that visually represents the question subject. Be accurate, clear, varied, and creative.`;
 
     try {
       const res = await fetch(GATEWAY, {
