@@ -29,7 +29,7 @@ function Ramailo() {
     setQuestions([]);
     try {
       const seen = await fetchSeenQuestions(user.id);
-      const includeLatest = Math.random() < 0.5;
+      const includeLatest = Math.random() < 0.7;
       const r = await generateRamailoQuestions({
         data: { count: 5, avoid: seen.slice(-150), nonce: newNonce(), includeLatest },
       });
