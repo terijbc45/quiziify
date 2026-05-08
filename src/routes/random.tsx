@@ -39,6 +39,14 @@ function Random() {
     });
   }, [user, topic, diff, started]);
 
+  const prefetchNext = async () => {
+    if (!user) return;
+    const seen = await fetchSeenQuestions(user.id);
+    const nonce = newNonce();
+    const key = `random:${user.id}:${topic}:${diff}:next`;
+    prefetchQuiz(key, { topic, difficulty: diff, count: 5, avoid: seen.slice(-150), nonce, includeLatest: Math.random() < 0.4, model: SECONDARY_MODEL });
+  };
+
   const start = async () => {
     if (!user) return;
     setStarted(true);
@@ -52,12 +60,21 @@ function Random() {
         promise = consumeCachedQuiz(stashed);
         (window as any).__randomPrefetchKey = undefined;
       }
+      // Try to consume a pre-warmed "next" round first
+      const nextKey = `random:${user.id}:${topic}:${diff}:next`;
+      if (!promise) {
+        const cached = consumeCachedQuiz(nextKey);
+        if (cached) promise = cached;
+      }
       if (!promise) {
         const nonce = newNonce();
         const key = `random:${user.id}:${topic}:${diff}:${nonce}`;
-        promise = prefetchQuiz(key, { topic, difficulty: diff, count: 5, avoid: seen.slice(-150), nonce, includeLatest: Math.random() < 0.4 });
+        promise = prefetchQuiz(key, { topic, difficulty: diff, count: 5, avoid: seen.slice(-150), nonce, includeLatest: Math.random() < 0.4, model: PRIMARY_MODEL });
         consumeCachedQuiz(key);
       }
+      // Kick off background prefetch for the NEXT round in parallel using the secondary model
+      prefetchNext();
+
       const aiRes = await promise;
       if (aiRes.error) { setError(aiRes.error); setLoading(false); return; }
 
