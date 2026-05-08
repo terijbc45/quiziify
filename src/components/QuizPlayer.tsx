@@ -16,12 +16,14 @@ export type QuizQuestion = {
   emoji?: string | null;
 };
 
+// Bolder gradients to match the playful look across all three modes
 const GRADIENTS = [
-  "from-pink-400/30 via-rose-300/20 to-orange-300/30",
-  "from-violet-400/30 via-purple-300/20 to-fuchsia-300/30",
-  "from-sky-400/30 via-cyan-300/20 to-blue-300/30",
-  "from-emerald-400/30 via-teal-300/20 to-green-300/30",
-  "from-amber-400/30 via-yellow-300/20 to-lime-300/30",
+  "from-pink-500 via-rose-500 to-orange-400",
+  "from-violet-500 via-purple-500 to-fuchsia-500",
+  "from-sky-500 via-cyan-500 to-blue-500",
+  "from-emerald-500 via-teal-500 to-green-500",
+  "from-amber-500 via-orange-500 to-red-400",
+  "from-indigo-500 via-blue-500 to-cyan-500",
 ];
 
 export function QuizPlayer({
