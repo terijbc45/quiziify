@@ -6,39 +6,57 @@ import { RamailoPlayer } from "@/components/RamailoPlayer";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { ArrowLeft, Sparkles } from "lucide-react";
-import { fetchSeenQuestions, hashQuestion, recordSeen } from "@/lib/quiz-cache";
-import { generateRamailoQuestions } from "@/server/ramailo.functions";
+import { ArrowLeft, Sparkles, Globe2, Pizza, Building2, Shuffle } from "lucide-react";
+import { fetchSeenQuestions, hashQuestion, recordSeen, consumeCachedQuiz, prefetchRamailo, PRIMARY_MODEL, SECONDARY_MODEL } from "@/lib/quiz-cache";
 
 export const Route = createFileRoute("/ramailo")({ component: () => <AppShell><Ramailo /></AppShell> });
+
+type Cat = "random" | "logo" | "places" | "food_animals";
+
+const CATEGORIES: Array<{ id: Cat; label: string; emoji: string; icon: typeof Globe2; gradient: string; desc: string }> = [
+  { id: "random", label: "Random", emoji: "🎲", icon: Shuffle, gradient: "from-violet-500 to-fuchsia-500", desc: "A mix of fun general-knowledge" },
+  { id: "logo", label: "Logo", emoji: "🏷️", icon: Building2, gradient: "from-sky-500 to-cyan-500", desc: "Guess the brand from its logo" },
+  { id: "places", label: "Places", emoji: "🌍", icon: Globe2, gradient: "from-emerald-500 to-teal-500", desc: "Flags, monuments & famous spots" },
+  { id: "food_animals", label: "Foods & Animals", emoji: "🍕", icon: Pizza, gradient: "from-amber-500 to-orange-500", desc: "Tasty bites and wild creatures" },
+];
 
 function Ramailo() {
   const { user } = useAuth();
   const nav = useNavigate();
+  const [category, setCategory] = useState<Cat | null>(null);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [endPrompt, setEndPrompt] = useState<null | { score: number; total: number }>(null);
 
   const newNonce = () => `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
-  const load = async () => {
+  const load = async (cat: Cat) => {
     if (!user) return;
     setLoading(true);
     setError(null);
     setQuestions([]);
     try {
       const seen = await fetchSeenQuestions(user.id);
-      const includeLatest = Math.random() < 0.7;
-      const r = await generateRamailoQuestions({
-        data: { count: 5, avoid: seen.slice(-150), nonce: newNonce(), includeLatest },
+      const includeLatest = cat === "random" && Math.random() < 0.6;
+
+      const key = `ramailo:${user.id}:${cat}:next`;
+      let promise = consumeCachedQuiz(key);
+      if (!promise) {
+        promise = prefetchRamailo(`ramailo:${user.id}:${cat}:${newNonce()}`, {
+          count: 5, avoid: seen.slice(-150), nonce: newNonce(), includeLatest, category: cat, model: PRIMARY_MODEL,
+        });
+      }
+      // Pre-warm next round in parallel with secondary model
+      prefetchRamailo(`ramailo:${user.id}:${cat}:next`, {
+        count: 5, avoid: seen.slice(-150), nonce: newNonce(), includeLatest, category: cat, model: SECONDARY_MODEL,
       });
+
+      const r = await promise;
       if (r.error) { setError(r.error); setLoading(false); return; }
       const seenSet = new Set(seen);
       const filtered = r.questions.filter((q) => !seenSet.has(hashQuestion(q.question)));
-      const qs = (filtered.length >= 3 ? filtered : r.questions).map((q) => ({
-        ...q, author: null, image_url: null,
-      })) as QuizQuestion[];
+      const qs = (filtered.length >= 3 ? filtered : r.questions) as QuizQuestion[];
       setQuestions(qs);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed");
@@ -47,24 +65,58 @@ function Ramailo() {
     }
   };
 
-  useEffect(() => { if (user) load(); /* eslint-disable-next-line */ }, [user?.id]);
+  const pick = (cat: Cat) => { setCategory(cat); setEndPrompt(null); load(cat); };
 
   const finish = async (score: number) => {
     if (user) {
       await recordSeen(user.id, questions, "ramailo");
       await supabase.from("quiz_attempts").insert({
-        user_id: user.id, mode: "ramailo", difficulty: "easy", score, total: questions.length, topic: "ramailo",
+        user_id: user.id, mode: "ramailo", difficulty: "easy", score, total: questions.length, topic: category ?? "ramailo",
       });
     }
     setEndPrompt({ score, total: questions.length });
   };
 
-  const playAgain = async () => { setEndPrompt(null); await load(); };
+  const playAgain = async () => { if (category) { setEndPrompt(null); await load(category); } };
 
+  // ----- Picker view -----
+  if (!category) {
+    return (
+      <div className="space-y-6 max-w-2xl mx-auto animate-slide-in">
+        <Button variant="ghost" size="sm" onClick={() => nav({ to: "/" })} className="rounded-full">
+          <ArrowLeft className="h-4 w-4 mr-1" /> Home
+        </Button>
+        <div className="rounded-3xl bg-gradient-to-br from-pink-500 via-rose-500 to-orange-400 p-6 text-white shadow-card">
+          <div className="flex items-center gap-2 mb-1">
+            <Sparkles className="h-5 w-5" />
+            <h1 className="text-2xl font-bold">Ramailo</h1>
+          </div>
+          <p className="text-white/90 text-sm">Pick a category and play. Quick, fun & sharp.</p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          {CATEGORIES.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => pick(c.id)}
+              className={`group relative rounded-3xl p-5 text-left text-white bg-gradient-to-br ${c.gradient} shadow-card hover:scale-[1.03] active:scale-95 transition-transform overflow-hidden`}
+            >
+              <div className="absolute -top-6 -right-6 h-24 w-24 rounded-full bg-white/15 blur-2xl" />
+              <div className="text-4xl mb-2">{c.emoji}</div>
+              <div className="font-bold text-lg leading-tight">{c.label}</div>
+              <div className="text-xs text-white/85 mt-1 leading-snug">{c.desc}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // ----- Quiz view -----
   return (
     <div className="space-y-6">
-      <Button variant="ghost" size="sm" onClick={() => nav({ to: "/" })} className="rounded-full">
-        <ArrowLeft className="h-4 w-4 mr-1" /> Home
+      <Button variant="ghost" size="sm" onClick={() => { setCategory(null); setQuestions([]); setEndPrompt(null); }} className="rounded-full">
+        <ArrowLeft className="h-4 w-4 mr-1" /> Categories
       </Button>
       {endPrompt ? (
         <div className="rounded-3xl bg-gradient-card p-8 text-center shadow-glow animate-slide-in max-w-lg mx-auto">
@@ -73,23 +125,17 @@ function Ramailo() {
           <p className="text-muted-foreground mb-6">Want another fresh round?</p>
           <div className="flex gap-3 justify-center flex-wrap">
             <Button onClick={playAgain} className="rounded-full bg-gradient-hero font-bold">Continue</Button>
-            <Button variant="outline" onClick={() => nav({ to: "/" })} className="rounded-full">Go to Home</Button>
+            <Button variant="outline" onClick={() => setCategory(null)} className="rounded-full">Pick category</Button>
           </div>
         </div>
       ) : (
-        <>
-          <div className="max-w-2xl mx-auto flex items-center gap-2 text-sm text-muted-foreground">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <span>Ramailo · simple, fun general-knowledge questions</span>
-          </div>
-          <RamailoPlayer
-            loading={loading}
-            error={error}
-            questions={questions}
-            onFinish={finish}
-            onRetry={load}
-          />
-        </>
+        <RamailoPlayer
+          loading={loading}
+          error={error}
+          questions={questions}
+          onFinish={finish}
+          onRetry={() => load(category)}
+        />
       )}
     </div>
   );
