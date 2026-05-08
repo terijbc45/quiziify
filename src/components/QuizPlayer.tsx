@@ -16,12 +16,14 @@ export type QuizQuestion = {
   emoji?: string | null;
 };
 
+// Bolder gradients to match the playful look across all three modes
 const GRADIENTS = [
-  "from-pink-400/30 via-rose-300/20 to-orange-300/30",
-  "from-violet-400/30 via-purple-300/20 to-fuchsia-300/30",
-  "from-sky-400/30 via-cyan-300/20 to-blue-300/30",
-  "from-emerald-400/30 via-teal-300/20 to-green-300/30",
-  "from-amber-400/30 via-yellow-300/20 to-lime-300/30",
+  "from-pink-500 via-rose-500 to-orange-400",
+  "from-violet-500 via-purple-500 to-fuchsia-500",
+  "from-sky-500 via-cyan-500 to-blue-500",
+  "from-emerald-500 via-teal-500 to-green-500",
+  "from-amber-500 via-orange-500 to-red-400",
+  "from-indigo-500 via-blue-500 to-cyan-500",
 ];
 
 export function QuizPlayer({
@@ -143,12 +145,16 @@ export function QuizPlayer({
       </div>
 
       <div className="rounded-3xl bg-card shadow-card border border-border overflow-hidden">
-        {/* Visual header — emoji graphic or image */}
-        <div className={cn("relative bg-gradient-to-br flex items-center justify-center p-8 min-h-[180px] overflow-hidden", grad)}>
-          <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full bg-white/30 blur-3xl animate-pulse" />
-          <div className="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-white/20 blur-3xl animate-pulse [animation-delay:600ms]" />
+        {/* Visual header — vibrant gradient with decorative shapes */}
+        <div className={cn("relative bg-gradient-to-br flex items-center justify-center p-8 min-h-[200px] overflow-hidden text-white", grad)}>
+          <div className="absolute -top-10 -right-10 h-44 w-44 rounded-full bg-white/25 blur-3xl animate-pulse" />
+          <div className="absolute -bottom-12 -left-12 h-44 w-44 rounded-full bg-black/10 blur-3xl animate-pulse [animation-delay:600ms]" />
+          <div className="absolute top-5 left-6 h-5 w-5 rounded-full bg-white/40" />
+          <div className="absolute bottom-7 right-8 h-3 w-3 rounded-full bg-white/50" />
           {q.image_url ? (
-            <img src={q.image_url} alt="" className="relative max-h-48 rounded-2xl object-contain animate-scale-in" />
+            <div className="relative bg-white rounded-2xl p-3 shadow-soft animate-scale-in">
+              <img src={q.image_url} alt="" className="max-h-44 rounded-xl object-contain" />
+            </div>
           ) : (
             <div key={idx} className="relative text-7xl md:text-8xl select-none animate-scale-in drop-shadow-lg" aria-hidden>
               {q.emoji || "🧠"}

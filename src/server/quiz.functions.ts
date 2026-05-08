@@ -22,6 +22,7 @@ const Input = z.object({
   avoid: z.array(z.string()).max(200).optional(),
   nonce: z.string().max(64).optional(),
   includeLatest: z.boolean().optional(),
+  model: z.string().max(80).optional(),
 });
 
 export const generateQuestions = createServerFn({ method: "POST" })
@@ -59,14 +60,14 @@ export const generateQuestions = createServerFn({ method: "POST" })
       }
     }
 
-    const sysPrompt = `You generate high-quality multiple choice quiz questions. Difficulty: ${data.difficulty}.${levelHint} Topic: ${data.topic === "any" ? "any field — vary widely across science, history, geography, math, language, arts, tech, sports, pop-culture" : data.topic}.${avoidHint} For this batch, lean into: ${angle}. Be unpredictable — never recycle classic textbook examples. Variation seed (use to diversify your picks, do NOT mention it): ${seed}.${latestBlock}\n\nFORMAT RULES (strict): Questions can be detailed and descriptive (one or two sentences, up to ~220 chars, with rich context). BUT each of the 4 answer options MUST be SHORT — ideally 1-3 words, never more than 5 words. Avoid full sentences in options. Provide a single emoji that visually represents the subject and a one-sentence explanation. Be accurate, clear, varied, and creative.`;
+    const sysPrompt = `You generate sharp, brain-stimulating general-knowledge MCQs designed to make people smarter through interactive practice. Difficulty: ${data.difficulty}.${levelHint} Topic: ${data.topic === "any" ? "ALL fields — mix widely across science, history, geography, math, language, arts, tech, sports, pop-culture, current affairs, biology, chemistry, physics, world cultures" : data.topic}.${avoidHint} For this batch, lean into: ${angle}. Be unpredictable — never recycle classic textbook examples. Variation seed (do NOT mention): ${seed}.${latestBlock}\n\nFORMAT RULES (strict):\n- Default question length: SHORT and clear (one sentence, ~60-130 chars). Only go longer (up to ~220 chars) when extra context is genuinely needed — e.g. specific scientific research, experiments, historic events, or technical questions that require setup for clarity.\n- Each of the 4 options MUST be very short — 1-3 words ideally, NEVER more than 5 words. No full sentences in options.\n- Provide ONE emoji visually representing the subject and a one-sentence explanation.\n- Be accurate, varied, and creative.`;
 
     try {
       const res = await fetch(GATEWAY, {
         method: "POST",
         headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: data.model ?? "google/gemini-2.5-flash",
           temperature: 1.1,
           messages: [
             { role: "system", content: sysPrompt },

@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { ArrowLeft } from "lucide-react";
 
-import { consumeCachedQuiz, fetchSeenQuestions, hashQuestion, prefetchQuiz, recordSeen } from "@/lib/quiz-cache";
+import { consumeCachedQuiz, fetchSeenQuestions, hashQuestion, prefetchQuiz, recordSeen, PRIMARY_MODEL, SECONDARY_MODEL } from "@/lib/quiz-cache";
 
 export const Route = createFileRoute("/random")({ component: () => <AppShell><Random /></AppShell> });
 
@@ -33,11 +33,19 @@ function Random() {
     const nonce = newNonce();
     const key = `random:${user.id}:${topic}:${diff}:${nonce}`;
     fetchSeenQuestions(user.id).then((seen) => {
-      prefetchQuiz(key, { topic, difficulty: diff, count: 5, avoid: seen.slice(-150), nonce, includeLatest: Math.random() < 0.4 });
+      prefetchQuiz(key, { topic, difficulty: diff, count: 5, avoid: seen.slice(-150), nonce, includeLatest: Math.random() < 0.4, model: PRIMARY_MODEL });
       // stash the key so start() picks it up
       (window as any).__randomPrefetchKey = key;
     });
   }, [user, topic, diff, started]);
+
+  const prefetchNext = async () => {
+    if (!user) return;
+    const seen = await fetchSeenQuestions(user.id);
+    const nonce = newNonce();
+    const key = `random:${user.id}:${topic}:${diff}:next`;
+    prefetchQuiz(key, { topic, difficulty: diff, count: 5, avoid: seen.slice(-150), nonce, includeLatest: Math.random() < 0.4, model: SECONDARY_MODEL });
+  };
 
   const start = async () => {
     if (!user) return;
@@ -52,12 +60,21 @@ function Random() {
         promise = consumeCachedQuiz(stashed);
         (window as any).__randomPrefetchKey = undefined;
       }
+      // Try to consume a pre-warmed "next" round first
+      const nextKey = `random:${user.id}:${topic}:${diff}:next`;
+      if (!promise) {
+        const cached = consumeCachedQuiz(nextKey);
+        if (cached) promise = cached;
+      }
       if (!promise) {
         const nonce = newNonce();
         const key = `random:${user.id}:${topic}:${diff}:${nonce}`;
-        promise = prefetchQuiz(key, { topic, difficulty: diff, count: 5, avoid: seen.slice(-150), nonce, includeLatest: Math.random() < 0.4 });
+        promise = prefetchQuiz(key, { topic, difficulty: diff, count: 5, avoid: seen.slice(-150), nonce, includeLatest: Math.random() < 0.4, model: PRIMARY_MODEL });
         consumeCachedQuiz(key);
       }
+      // Kick off background prefetch for the NEXT round in parallel using the secondary model
+      prefetchNext();
+
       const aiRes = await promise;
       if (aiRes.error) { setError(aiRes.error); setLoading(false); return; }
 
