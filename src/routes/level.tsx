@@ -12,6 +12,8 @@ import {
   prefetchQuiz,
   recordSeen,
   hashQuestion,
+  PRIMARY_MODEL,
+  SECONDARY_MODEL,
 } from "@/lib/quiz-cache";
 
 export const Route = createFileRoute("/level")({ component: () => <AppShell><LevelMode /></AppShell> });
@@ -66,13 +68,24 @@ function LevelMode() {
         level: lvl,
         avoid: seen.slice(-100),
         includeLatest: Math.random() < 0.4,
+        model: PRIMARY_MODEL,
       });
       consumeCachedQuiz(key);
     }
+
+    // Pre-warm NEXT level in parallel using the secondary model
+    (async () => {
+      const nextL = lvl + 1;
+      const seen2 = await fetchSeenQuestions(user.id);
+      prefetchQuiz(`level:${user.id}:${nextL}`, {
+        topic: "any", difficulty: difficultyForLevel(nextL), count: 5, level: nextL,
+        avoid: seen2.slice(-100), includeLatest: Math.random() < 0.4, model: SECONDARY_MODEL,
+      });
+    })();
+
     const res = await promise;
     if (res.error) { setError(res.error); setLoading(false); return; }
 
-    // Local de-dupe against any seen this session
     const seenSet = new Set((await fetchSeenQuestions(user.id)));
     const filtered = res.questions.filter((q) => !seenSet.has(hashQuestion(q.question)));
     const final = filtered.length >= 3 ? filtered : res.questions;
