@@ -120,32 +120,37 @@ export function RamailoPlayer({
         <Progress value={((idx + (answered ? 1 : 0)) / questions.length) * 100} className="h-2" />
       </div>
 
-      {/* Hero emoji card */}
+      {/* Hero card — simpler, image-first when provided */}
       <div className={cn(
-        "relative rounded-[2rem] bg-gradient-to-br p-8 sm:p-10 text-white shadow-glow overflow-hidden",
+        "relative rounded-[2rem] bg-gradient-to-br p-6 sm:p-8 text-white shadow-card overflow-hidden",
         grad
       )}>
-        {/* decorative blobs */}
-        <div className="absolute -top-12 -right-10 h-40 w-40 rounded-full bg-white/15 blur-2xl" />
-        <div className="absolute -bottom-12 -left-10 h-40 w-40 rounded-full bg-black/10 blur-2xl" />
+        <div className="absolute -top-10 -right-8 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
 
         <div className="relative flex flex-col items-center text-center">
-          <div className="relative">
-            {isRight && (
-              <>
-                <span className="absolute inset-0 rounded-full bg-white/30 animate-ping" />
-                <span className="absolute inset-0 rounded-full bg-white/20 animate-ping [animation-delay:200ms]" />
-              </>
-            )}
+          {q.image_url ? (
+            <div className="relative bg-white rounded-2xl p-4 shadow-soft animate-scale-in">
+              <img
+                key={idx}
+                src={q.image_url}
+                alt=""
+                className="h-32 w-32 sm:h-40 sm:w-40 object-contain"
+                loading="eager"
+              />
+              {isRight && (
+                <span className="absolute inset-0 rounded-2xl ring-4 ring-white/60 animate-ping" />
+              )}
+            </div>
+          ) : (
             <div
               key={idx + (answered ? "-a" : "-q")}
-              className="text-7xl sm:text-8xl select-none animate-scale-in drop-shadow-lg"
+              className="text-6xl sm:text-7xl select-none animate-scale-in drop-shadow"
               aria-hidden
             >
               {answered ? (isRight ? "🎉" : "💭") : (q.emoji || "❓")}
             </div>
-          </div>
-          <h2 className="mt-5 text-2xl sm:text-3xl font-extrabold leading-tight drop-shadow">
+          )}
+          <h2 className="mt-4 text-xl sm:text-2xl font-extrabold leading-tight drop-shadow">
             {q.question}
           </h2>
         </div>
