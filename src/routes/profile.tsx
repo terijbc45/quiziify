@@ -308,7 +308,7 @@ function Profile() {
         )}
       </Section>
 
-      <RamailoSection />
+      {/* Ramailo entrypoint moved to bottom nav / home — no inline CTA in profile */}
 
       {/* Image preview lightbox — Facebook-style */}
       {preview && (
