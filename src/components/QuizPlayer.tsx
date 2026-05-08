@@ -145,12 +145,16 @@ export function QuizPlayer({
       </div>
 
       <div className="rounded-3xl bg-card shadow-card border border-border overflow-hidden">
-        {/* Visual header — emoji graphic or image */}
-        <div className={cn("relative bg-gradient-to-br flex items-center justify-center p-8 min-h-[180px] overflow-hidden", grad)}>
-          <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full bg-white/30 blur-3xl animate-pulse" />
-          <div className="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-white/20 blur-3xl animate-pulse [animation-delay:600ms]" />
+        {/* Visual header — vibrant gradient with decorative shapes */}
+        <div className={cn("relative bg-gradient-to-br flex items-center justify-center p-8 min-h-[200px] overflow-hidden text-white", grad)}>
+          <div className="absolute -top-10 -right-10 h-44 w-44 rounded-full bg-white/25 blur-3xl animate-pulse" />
+          <div className="absolute -bottom-12 -left-12 h-44 w-44 rounded-full bg-black/10 blur-3xl animate-pulse [animation-delay:600ms]" />
+          <div className="absolute top-5 left-6 h-5 w-5 rounded-full bg-white/40" />
+          <div className="absolute bottom-7 right-8 h-3 w-3 rounded-full bg-white/50" />
           {q.image_url ? (
-            <img src={q.image_url} alt="" className="relative max-h-48 rounded-2xl object-contain animate-scale-in" />
+            <div className="relative bg-white rounded-2xl p-3 shadow-soft animate-scale-in">
+              <img src={q.image_url} alt="" className="max-h-44 rounded-xl object-contain" />
+            </div>
           ) : (
             <div key={idx} className="relative text-7xl md:text-8xl select-none animate-scale-in drop-shadow-lg" aria-hidden>
               {q.emoji || "🧠"}
