@@ -33,7 +33,7 @@ function Random() {
     const nonce = newNonce();
     const key = `random:${user.id}:${topic}:${diff}:${nonce}`;
     fetchSeenQuestions(user.id).then((seen) => {
-      prefetchQuiz(key, { topic, difficulty: diff, count: 5, avoid: seen.slice(-150), nonce, includeLatest: Math.random() < 0.4 });
+      prefetchQuiz(key, { topic, difficulty: diff, count: 5, avoid: seen.slice(-150), nonce, includeLatest: Math.random() < 0.4, model: PRIMARY_MODEL });
       // stash the key so start() picks it up
       (window as any).__randomPrefetchKey = key;
     });
