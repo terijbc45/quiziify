@@ -139,18 +139,28 @@ Variation seed (do not mention): ${seed}.`;
       if (!args) return { error: "No questions returned", questions: [] };
       const parsed = QuestionSet.parse(JSON.parse(args));
 
-      // Resolve image_url server-side based on category
-      const enriched = parsed.questions.map((q) => {
-        let image_url = q.image_url ?? "";
-        if (cat === "logo" && q.domain) {
-          image_url = `https://logo.clearbit.com/${q.domain.replace(/^https?:\/\//, "").replace(/\/.*$/, "")}?size=256`;
-        } else if (cat === "places" && q.country_code) {
-          image_url = `https://flagcdn.com/w320/${q.country_code.toLowerCase()}.png`;
-        }
-        return { ...q, image_url };
-      });
+      // Resolve image_url server-side based on category — prefer real internet images via Firecrawl.
+      const enriched = await Promise.all(parsed.questions.map(async (q) => {
+        let image_url: string | null = q.image_url ?? null;
+        try {
+          if (cat === "logo" && q.subject) {
+            image_url = await fetchLogoImage(q.subject, q.domain);
+          } else if (cat === "places") {
+            if (q.country_code) {
+              image_url = `https://flagcdn.com/w320/${q.country_code.toLowerCase()}.png`;
+            } else if (q.subject) {
+              image_url = await fetchPlaceImage(q.subject);
+            }
+          } else if (cat === "food_animals" && q.subject) {
+            image_url = await fetchFoodAnimalImage(q.subject);
+          }
+        } catch { /* graceful */ }
+        return { ...q, image_url: image_url ?? "" };
+      }));
 
-      return { error: null, questions: enriched };
+      // Drop image-required questions with no resolved image (logo/places) so player never shows broken thumbs.
+      const final = enriched.filter((q) => (cat === "logo" || cat === "places") ? !!q.image_url : true);
+      return { error: null, questions: final.length > 0 ? final : enriched };
     } catch (e) {
       console.error("generateRamailoQuestions error", e);
       return { error: "Failed to generate questions", questions: [] };

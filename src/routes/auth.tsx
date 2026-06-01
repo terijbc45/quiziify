@@ -79,8 +79,8 @@ function AuthPage() {
           <div className="mx-auto h-16 w-16 rounded-3xl bg-white/20 backdrop-blur flex items-center justify-center mb-4 shadow-glow">
             <Brain className="h-8 w-8" />
           </div>
-          <h1 className="text-4xl font-bold">Quiz</h1>
-          <p className="text-white/80 mt-2">AI-powered learning, your way.</p>
+          <h1 className="text-4xl font-bold">Quiziify</h1>
+          <p className="text-white/80 mt-2">Sharpen your mind, your curriculum, your way.</p>
         </div>
 
         <div className="bg-card rounded-3xl shadow-glow p-7 animate-slide-in">
