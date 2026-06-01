@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Brain, Lock, Mail, Shield, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { COUNTRIES, GRADES } from "@/lib/locale-options";
 
 export const Route = createFileRoute("/auth")({ component: AuthPage });
 
@@ -112,13 +113,31 @@ function AuthPage() {
 
           <form onSubmit={submit} className="space-y-4">
             {mode === "signup" && (
-              <div className="space-y-1.5">
-                <Label htmlFor="dn">Display name</Label>
-                <div className="relative">
-                  <Sparkles className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input id="dn" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Alex" className="pl-9 h-11 rounded-xl" maxLength={40} />
+              <>
+                <div className="space-y-1.5">
+                  <Label htmlFor="dn">Display name</Label>
+                  <div className="relative">
+                    <Sparkles className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input id="dn" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Alex" className="pl-9 h-11 rounded-xl" maxLength={40} />
+                  </div>
                 </div>
-              </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="co">Country</Label>
+                    <select id="co" value={country} onChange={(e) => setCountry(e.target.value)} required className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm">
+                      <option value="">Select…</option>
+                      {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.flag} {c.name}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="gr">Class</Label>
+                    <select id="gr" value={grade} onChange={(e) => setGrade(e.target.value)} required className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm">
+                      <option value="">Select…</option>
+                      {GRADES.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </>
             )}
             <div className="space-y-1.5">
               <Label htmlFor="e">Email</Label>
