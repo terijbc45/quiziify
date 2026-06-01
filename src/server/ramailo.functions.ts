@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { fetchLatestSnippets } from "./firecrawl.server";
+import { fetchLogoImage, fetchPlaceImage, fetchFoodAnimalImage } from "./firecrawl-images.server";
 
 const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
@@ -47,7 +48,7 @@ Options must be short (1-3 words). Mix continents.`;
       return `Generate fun trivia mixing famous foods and animals from around the world: dishes, fruits, drinks, mammals, birds, sea creatures, insects. E.g. "Which country is sushi from?", "Fastest land animal?", "What animal is a 'joey'?", "Pizza margherita originated in?". Use a vivid emoji per question.`;
     case "random":
     default:
-      return `Generate fun, broad general-knowledge questions: capitals, science, sports, movies, history, simple tech, geography. Use a vivid emoji per question.`;
+      return `Generate BROAD general-knowledge trivia covering ALL fields. For each batch, deliberately ROTATE across these buckets and pick a different one for each question: science (physics/chemistry/biology), space & astronomy, world history, geography & capitals, sports, movies & music, literature & mythology, technology & inventions, current affairs, math puzzles, world cultures & languages, food & cuisine, animals & nature. Never ask two questions from the same bucket. Use a vivid emoji per question.`;
   }
 }
 
