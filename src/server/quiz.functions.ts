@@ -15,7 +15,7 @@ const Question = z.object({
 const QuestionSet = z.object({ questions: z.array(Question).min(1) });
 
 const Input = z.object({
-  topic: z.string().min(1).max(80),
+  topic: z.string().min(1).max(120),
   difficulty: z.enum(["easy", "intermediate", "hard"]),
   count: z.number().min(1).max(10).default(5),
   level: z.number().optional(),
@@ -23,6 +23,11 @@ const Input = z.object({
   nonce: z.string().max(64).optional(),
   includeLatest: z.boolean().optional(),
   model: z.string().max(80).optional(),
+  curriculumContext: z.string().max(4000).optional(),
+  country: z.string().max(80).optional(),
+  grade: z.string().max(40).optional(),
+  subject: z.string().max(80).optional(),
+  chapter: z.string().max(120).optional(),
 });
 
 export const generateQuestions = createServerFn({ method: "POST" })
