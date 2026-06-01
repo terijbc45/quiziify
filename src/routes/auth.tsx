@@ -35,7 +35,11 @@ function AuthPage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const parsed = schema.safeParse({ email, password, displayName: mode === "signup" ? displayName : undefined });
+    if (mode === "signup" && (!country || !grade)) {
+      toast.error("Please choose your country and class");
+      return;
+    }
+    const parsed = schema.safeParse({ email, password, displayName: mode === "signup" ? displayName : undefined, country: mode === "signup" ? country : undefined, grade: mode === "signup" ? grade : undefined });
     if (!parsed.success) {
       toast.error(parsed.error.issues[0].message);
       return;
@@ -43,7 +47,7 @@ function AuthPage() {
     setBusy(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data: signUp, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -52,6 +56,10 @@ function AuthPage() {
           },
         });
         if (error) throw error;
+        // Persist country/grade to profile (handle_new_user trigger creates the row).
+        if (signUp.user) {
+          await supabase.from("profiles").update({ country, grade }).eq("id", signUp.user.id);
+        }
         toast.success("Account created! You're in.");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
