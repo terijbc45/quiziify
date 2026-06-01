@@ -16,6 +16,8 @@ const schema = z.object({
   email: z.string().email("Enter a valid email").max(255),
   password: z.string().min(8, "Min 8 characters").max(72),
   displayName: z.string().trim().min(1).max(40).optional(),
+  country: z.string().min(2).max(8).optional(),
+  grade: z.string().min(1).max(20).optional(),
 });
 
 function AuthPage() {
@@ -25,6 +27,8 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [country, setCountry] = useState("");
+  const [grade, setGrade] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => { if (!loading && user) nav({ to: "/" }); }, [user, loading, nav]);
