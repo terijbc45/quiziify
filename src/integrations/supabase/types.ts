@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      chapter_progress: {
+        Row: {
+          best_score: number
+          chapter: string
+          completed_at: string
+          country: string
+          grade: string
+          id: string
+          subject: string
+          user_id: string
+        }
+        Insert: {
+          best_score?: number
+          chapter: string
+          completed_at?: string
+          country: string
+          grade: string
+          id?: string
+          subject: string
+          user_id: string
+        }
+        Update: {
+          best_score?: number
+          chapter?: string
+          completed_at?: string
+          country?: string
+          grade?: string
+          id?: string
+          subject?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      curriculum_cache: {
+        Row: {
+          fetched_at: string
+          key: string
+          payload: Json
+        }
+        Insert: {
+          fetched_at?: string
+          key: string
+          payload: Json
+        }
+        Update: {
+          fetched_at?: string
+          key?: string
+          payload?: Json
+        }
+        Relationships: []
+      }
       date_captions: {
         Row: {
           caption: string
@@ -59,6 +110,24 @@ export type Database = {
           total_score?: number
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      media_cache: {
+        Row: {
+          fetched_at: string
+          key: string
+          url: string
+        }
+        Insert: {
+          fetched_at?: string
+          key: string
+          url: string
+        }
+        Update: {
+          fetched_at?: string
+          key?: string
+          url?: string
         }
         Relationships: []
       }
@@ -130,27 +199,33 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          country: string | null
           cover_photo_url: string | null
           created_at: string
           display_name: string
+          grade: string | null
           id: string
           updated_at: string
         }
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          country?: string | null
           cover_photo_url?: string | null
           created_at?: string
           display_name?: string
+          grade?: string | null
           id: string
           updated_at?: string
         }
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          country?: string | null
           cover_photo_url?: string | null
           created_at?: string
           display_name?: string
+          grade?: string | null
           id?: string
           updated_at?: string
         }
