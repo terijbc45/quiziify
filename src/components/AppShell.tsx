@@ -47,7 +47,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="h-9 w-9 rounded-2xl bg-gradient-hero flex items-center justify-center shadow-soft">
               <Brain className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-gradient">Quiz</span>
+            <span className="text-xl font-bold text-gradient">Quiziify</span>
           </Link>
           <Link
             to="/profile"

@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Check, X, Loader2, ArrowRight, Trophy, Sparkles, Zap } from "lucide-react";
+import { Check, X, ArrowRight, Sparkles, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { QuizQuestion } from "@/components/QuizPlayer";
+import { BrainLoader } from "@/components/BrainLoader";
 
 const BG_GRADIENTS = [
   "from-pink-400 via-rose-400 to-orange-400",
@@ -48,25 +49,7 @@ export function RamailoPlayer({
 
   useEffect(() => { setIdx(0); setPicked(null); setScore(0); setDone(false); setStreak(0); }, [questions]);
 
-  if (loading) {
-    return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-5">
-        <div className="relative">
-          <span className="absolute inset-0 rounded-full bg-pink-400/30 blur-2xl animate-pulse" />
-          <div className="relative text-7xl animate-bounce">🎲</div>
-        </div>
-        <div className="flex items-center gap-2 text-primary">
-          <Loader2 className="h-5 w-5 animate-spin" />
-          <p className="font-bold text-lg">Preparing Questions</p>
-          <span className="inline-flex gap-0.5 font-bold text-xl">
-            <span className="animate-bounce [animation-delay:0ms]">.</span>
-            <span className="animate-bounce [animation-delay:150ms]">.</span>
-            <span className="animate-bounce [animation-delay:300ms]">.</span>
-          </span>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <BrainLoader />;
 
   if (error) {
     return (

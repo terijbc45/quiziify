@@ -15,7 +15,7 @@ const Question = z.object({
 const QuestionSet = z.object({ questions: z.array(Question).min(1) });
 
 const Input = z.object({
-  topic: z.string().min(1).max(80),
+  topic: z.string().min(1).max(120),
   difficulty: z.enum(["easy", "intermediate", "hard"]),
   count: z.number().min(1).max(10).default(5),
   level: z.number().optional(),
@@ -23,6 +23,11 @@ const Input = z.object({
   nonce: z.string().max(64).optional(),
   includeLatest: z.boolean().optional(),
   model: z.string().max(80).optional(),
+  curriculumContext: z.string().max(4000).optional(),
+  country: z.string().max(80).optional(),
+  grade: z.string().max(40).optional(),
+  subject: z.string().max(80).optional(),
+  chapter: z.string().max(120).optional(),
 });
 
 export const generateQuestions = createServerFn({ method: "POST" })
@@ -60,7 +65,11 @@ export const generateQuestions = createServerFn({ method: "POST" })
       }
     }
 
-    const sysPrompt = `You generate sharp, brain-stimulating general-knowledge MCQs designed to make people smarter through interactive practice. Difficulty: ${data.difficulty}.${levelHint} Topic: ${data.topic === "any" ? "ALL fields — mix widely across science, history, geography, math, language, arts, tech, sports, pop-culture, current affairs, biology, chemistry, physics, world cultures" : data.topic}.${avoidHint} For this batch, lean into: ${angle}. Be unpredictable — never recycle classic textbook examples. Variation seed (do NOT mention): ${seed}.${latestBlock}\n\nFORMAT RULES (strict):\n- Default question length: SHORT and clear (one sentence, ~60-130 chars). Only go longer (up to ~220 chars) when extra context is genuinely needed — e.g. specific scientific research, experiments, historic events, or technical questions that require setup for clarity.\n- Each of the 4 options MUST be very short — 1-3 words ideally, NEVER more than 5 words. No full sentences in options.\n- Provide ONE emoji visually representing the subject and a one-sentence explanation.\n- Be accurate, varied, and creative.`;
+    const curriculumBlock = data.curriculumContext
+      ? `\n\nCURRICULUM GROUND TRUTH (from official syllabus — base every question STRICTLY on these topics; do NOT ask anything outside this scope):\nCountry: ${data.country ?? ""} | Grade: ${data.grade ?? ""} | Subject: ${data.subject ?? ""}${data.chapter ? ` | Chapter: ${data.chapter}` : ""}\n${data.curriculumContext}`
+      : "";
+
+    const sysPrompt = `You generate sharp, brain-stimulating ${data.curriculumContext ? "school-curriculum" : "general-knowledge"} MCQs designed to make people smarter through interactive practice. Difficulty: ${data.difficulty}.${levelHint} Topic: ${data.topic === "any" ? "ALL fields — mix widely across science, history, geography, math, language, arts, tech, sports, pop-culture, current affairs, biology, chemistry, physics, world cultures" : data.topic}.${avoidHint} For this batch, lean into: ${angle}. Be unpredictable — never recycle classic textbook examples. Variation seed (do NOT mention): ${seed}.${latestBlock}${curriculumBlock}\n\nFORMAT RULES (strict):\n- Default question length: SHORT and clear (one sentence, ~60-130 chars). Only go longer (up to ~220 chars) when extra context is genuinely needed — e.g. specific scientific research, experiments, historic events, or technical questions that require setup for clarity.\n- Each of the 4 options MUST be very short — 1-3 words ideally, NEVER more than 5 words. No full sentences in options.\n- Provide ONE emoji visually representing the subject and a one-sentence explanation.\n- Be accurate, varied, and creative.`;
 
     try {
       const res = await fetch(GATEWAY, {

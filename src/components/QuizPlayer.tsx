@@ -5,6 +5,7 @@ import { Check, X, Loader2, ArrowRight, Trophy, Sparkles, BookOpen } from "lucid
 import { cn } from "@/lib/utils";
 import { createPortal } from "react-dom";
 import { explainQuestion } from "@/server/quiz.functions";
+import { BrainLoader } from "@/components/BrainLoader";
 
 export type QuizQuestion = {
   question: string;
@@ -61,25 +62,7 @@ export function QuizPlayer({
     }
   }, [moreOpen]);
 
-  if (loading) {
-    return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-5">
-        <div className="relative">
-          <div className="absolute inset-0 rounded-full bg-primary/30 blur-2xl animate-pulse" />
-          <div className="relative text-6xl animate-bounce">🧠</div>
-        </div>
-        <div className="flex items-center gap-2 text-primary">
-          <Loader2 className="h-5 w-5 animate-spin" />
-          <p className="font-bold text-lg">Preparing Questions</p>
-          <span className="inline-flex gap-0.5">
-            <span className="animate-bounce [animation-delay:0ms]">.</span>
-            <span className="animate-bounce [animation-delay:150ms]">.</span>
-            <span className="animate-bounce [animation-delay:300ms]">.</span>
-          </span>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <BrainLoader />;
 
   if (error) {
     return (

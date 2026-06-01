@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Brain, Lock, Mail, Shield, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { COUNTRIES, GRADES } from "@/lib/locale-options";
 
 export const Route = createFileRoute("/auth")({ component: AuthPage });
 
@@ -16,6 +17,8 @@ const schema = z.object({
   email: z.string().email("Enter a valid email").max(255),
   password: z.string().min(8, "Min 8 characters").max(72),
   displayName: z.string().trim().min(1).max(40).optional(),
+  country: z.string().min(2).max(8).optional(),
+  grade: z.string().min(1).max(20).optional(),
 });
 
 function AuthPage() {
@@ -25,13 +28,19 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [country, setCountry] = useState("");
+  const [grade, setGrade] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => { if (!loading && user) nav({ to: "/" }); }, [user, loading, nav]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const parsed = schema.safeParse({ email, password, displayName: mode === "signup" ? displayName : undefined });
+    if (mode === "signup" && (!country || !grade)) {
+      toast.error("Please choose your country and class");
+      return;
+    }
+    const parsed = schema.safeParse({ email, password, displayName: mode === "signup" ? displayName : undefined, country: mode === "signup" ? country : undefined, grade: mode === "signup" ? grade : undefined });
     if (!parsed.success) {
       toast.error(parsed.error.issues[0].message);
       return;
@@ -39,7 +48,7 @@ function AuthPage() {
     setBusy(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data: signUp, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -48,6 +57,10 @@ function AuthPage() {
           },
         });
         if (error) throw error;
+        // Persist country/grade to profile (handle_new_user trigger creates the row).
+        if (signUp.user) {
+          await supabase.from("profiles").update({ country, grade }).eq("id", signUp.user.id);
+        }
         toast.success("Account created! You're in.");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -79,8 +92,8 @@ function AuthPage() {
           <div className="mx-auto h-16 w-16 rounded-3xl bg-white/20 backdrop-blur flex items-center justify-center mb-4 shadow-glow">
             <Brain className="h-8 w-8" />
           </div>
-          <h1 className="text-4xl font-bold">Quiz</h1>
-          <p className="text-white/80 mt-2">AI-powered learning, your way.</p>
+          <h1 className="text-4xl font-bold">Quiziify</h1>
+          <p className="text-white/80 mt-2">Sharpen your mind, your curriculum, your way.</p>
         </div>
 
         <div className="bg-card rounded-3xl shadow-glow p-7 animate-slide-in">
@@ -100,13 +113,31 @@ function AuthPage() {
 
           <form onSubmit={submit} className="space-y-4">
             {mode === "signup" && (
-              <div className="space-y-1.5">
-                <Label htmlFor="dn">Display name</Label>
-                <div className="relative">
-                  <Sparkles className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input id="dn" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Alex" className="pl-9 h-11 rounded-xl" maxLength={40} />
+              <>
+                <div className="space-y-1.5">
+                  <Label htmlFor="dn">Display name</Label>
+                  <div className="relative">
+                    <Sparkles className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input id="dn" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Alex" className="pl-9 h-11 rounded-xl" maxLength={40} />
+                  </div>
                 </div>
-              </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="co">Country</Label>
+                    <select id="co" value={country} onChange={(e) => setCountry(e.target.value)} required className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm">
+                      <option value="">Select…</option>
+                      {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.flag} {c.name}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="gr">Class</Label>
+                    <select id="gr" value={grade} onChange={(e) => setGrade(e.target.value)} required className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm">
+                      <option value="">Select…</option>
+                      {GRADES.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </>
             )}
             <div className="space-y-1.5">
               <Label htmlFor="e">Email</Label>
