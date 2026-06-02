@@ -1,9 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { Shuffle, Sparkles, ArrowLeft, Newspaper, Smile } from "lucide-react";
-import { useAuth } from "@/lib/auth-context";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { Shuffle, BookOpen, ArrowLeft, Newspaper, Smile } from "lucide-react";
 
 export const Route = createFileRoute("/play")({
   component: () => (
@@ -14,19 +11,6 @@ export const Route = createFileRoute("/play")({
 });
 
 function Play() {
-  const { user } = useAuth();
-  const [level, setLevel] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("level_progress")
-      .select("current_level")
-      .eq("user_id", user.id)
-      .maybeSingle()
-      .then(({ data }) => setLevel(data?.current_level ?? 1));
-  }, [user]);
-
   return (
     <div className="space-y-6 animate-slide-in max-w-3xl mx-auto">
       <Link
@@ -41,18 +25,25 @@ function Play() {
       </div>
       <div className="grid md:grid-cols-2 gap-5">
         <ModeCard
+          to="/chapters"
+          title="Chapters"
+          desc="Learn your syllabus, chapter by chapter."
+          icon={<BookOpen className="h-7 w-7" />}
+          gradient="from-violet-500 to-blue-500"
+        />
+        <ModeCard
           to="/random"
           title="Random"
-          desc="Mixed questions. Pick your difficulty and dive in."
+          desc="Curriculum subjects, mixed questions. Tap and play."
           icon={<Shuffle className="h-7 w-7" />}
           gradient="from-pink-500 to-orange-400"
         />
         <ModeCard
-          to="/level"
-          title="Level"
-          desc={`Climb endless levels.${level ? ` Currently L${level}.` : ""}`}
-          icon={<Sparkles className="h-7 w-7" />}
-          gradient="from-violet-500 to-blue-500"
+          to="/ramailo"
+          title="Ramailo"
+          desc="Quick, fun general-knowledge questions. No setup."
+          icon={<Smile className="h-7 w-7" />}
+          gradient="from-orange-400 to-pink-500"
         />
         <ModeCard
           to="/posts"
@@ -60,13 +51,6 @@ function Play() {
           desc="See quizzes posted by the community, with author info."
           icon={<Newspaper className="h-7 w-7" />}
           gradient="from-emerald-500 to-teal-400"
-        />
-        <ModeCard
-          to="/ramailo"
-          title="Ramailo"
-          desc="Quick, simple & fun general-knowledge questions. No setup."
-          icon={<Smile className="h-7 w-7" />}
-          gradient="from-orange-400 to-pink-500"
         />
       </div>
     </div>

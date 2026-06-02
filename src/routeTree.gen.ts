@@ -17,6 +17,7 @@ import { Route as PostsRouteImport } from './routes/posts'
 import { Route as PlayRouteImport } from './routes/play'
 import { Route as LevelRouteImport } from './routes/level'
 import { Route as CreateRouteImport } from './routes/create'
+import { Route as ChaptersRouteImport } from './routes/chapters'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -60,6 +61,11 @@ const CreateRoute = CreateRouteImport.update({
   path: '/create',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ChaptersRoute = ChaptersRouteImport.update({
+  id: '/chapters',
+  path: '/chapters',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -74,6 +80,7 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/chapters': typeof ChaptersRoute
   '/create': typeof CreateRoute
   '/level': typeof LevelRoute
   '/play': typeof PlayRoute
@@ -86,6 +93,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/chapters': typeof ChaptersRoute
   '/create': typeof CreateRoute
   '/level': typeof LevelRoute
   '/play': typeof PlayRoute
@@ -99,6 +107,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/chapters': typeof ChaptersRoute
   '/create': typeof CreateRoute
   '/level': typeof LevelRoute
   '/play': typeof PlayRoute
@@ -113,6 +122,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/chapters'
     | '/create'
     | '/level'
     | '/play'
@@ -125,6 +135,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/chapters'
     | '/create'
     | '/level'
     | '/play'
@@ -137,6 +148,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/auth'
+    | '/chapters'
     | '/create'
     | '/level'
     | '/play'
@@ -150,6 +162,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
+  ChaptersRoute: typeof ChaptersRoute
   CreateRoute: typeof CreateRoute
   LevelRoute: typeof LevelRoute
   PlayRoute: typeof PlayRoute
@@ -218,6 +231,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CreateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/chapters': {
+      id: '/chapters'
+      path: '/chapters'
+      fullPath: '/chapters'
+      preLoaderRoute: typeof ChaptersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -238,6 +258,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
+  ChaptersRoute: ChaptersRoute,
   CreateRoute: CreateRoute,
   LevelRoute: LevelRoute,
   PlayRoute: PlayRoute,

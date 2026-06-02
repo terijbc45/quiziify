@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { Save, Lock, Camera, LogOut, Trophy, TrendingUp, Sparkles, Image as ImageIcon, Pencil, X, FileText } from "lucide-react";
+import { Save, Lock, Camera, LogOut, Trophy, TrendingUp, Sparkles, Image as ImageIcon, Pencil, X, FileText, Globe, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
+import { COUNTRIES, GRADES, countryByCode, gradeLabel } from "@/lib/locale-options";
 import { formatDistanceToNow } from "date-fns";
 
 export const Route = createFileRoute("/profile")({
@@ -23,6 +24,8 @@ export const Route = createFileRoute("/profile")({
 const profileSchema = z.object({
   display_name: z.string().trim().min(1).max(40),
   bio: z.string().trim().max(280),
+  country: z.string().min(2).max(8).optional().or(z.literal("")),
+  grade: z.string().min(1).max(20).optional().or(z.literal("")),
 });
 
 function Profile() {
@@ -35,6 +38,8 @@ function Profile() {
   const [bio, setBio] = useState("");
   const [avatar, setAvatar] = useState<string | null>(null);
   const [cover, setCover] = useState<string | null>(null);
+  const [country, setCountry] = useState<string>("");
+  const [grade, setGrade] = useState<string>("");
   const [editing, setEditing] = useState(false);
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -54,7 +59,9 @@ function Profile() {
           setDisplayName(data.display_name);
           setBio(data.bio ?? "");
           setAvatar(data.avatar_url ?? null);
-          setCover((data as any).cover_photo_url ?? null);
+          setCover((data as { cover_photo_url?: string | null }).cover_photo_url ?? null);
+          setCountry((data as { country?: string | null }).country ?? "");
+          setGrade((data as { grade?: string | null }).grade ?? "");
         }
       });
     supabase.from("level_progress").select("current_level,total_score").eq("user_id", user.id).maybeSingle()
@@ -88,18 +95,21 @@ function Profile() {
 
   const save = async () => {
     if (!user) return;
-    const parsed = profileSchema.safeParse({ display_name: displayName, bio });
+    const parsed = profileSchema.safeParse({ display_name: displayName, bio, country, grade });
     if (!parsed.success) { toast.error(parsed.error.issues[0].message); return; }
     setBusy(true);
     const { error } = await supabase.from("profiles").update({
       display_name: parsed.data.display_name,
       bio: parsed.data.bio,
+      country: parsed.data.country || null,
+      grade: parsed.data.grade || null,
       updated_at: new Date().toISOString(),
     }).eq("id", user.id);
     setBusy(false);
     if (error) toast.error(error.message);
     else { toast.success("Profile updated"); setEditing(false); }
   };
+
 
   const changePassword = async () => {
     if (!user?.email) { toast.error("No email on account"); return; }
@@ -186,8 +196,25 @@ function Profile() {
           <div className="text-center">
             <h1 className="text-2xl font-bold">{displayName || "Quizzer"}</h1>
             <p className="text-muted-foreground text-sm mt-0.5">{user?.email}</p>
+            {(country || grade) && (
+              <div className="mt-3 flex items-center justify-center gap-2 flex-wrap">
+                {country && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                    <span className="text-base leading-none">{countryByCode(country)?.flag ?? "🌍"}</span>
+                    {countryByCode(country)?.name ?? country}
+                  </span>
+                )}
+                {grade && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent text-accent-foreground text-xs font-semibold">
+                    <GraduationCap className="h-3.5 w-3.5" />
+                    {gradeLabel(grade)}
+                  </span>
+                )}
+              </div>
+            )}
             {bio && <p className="mt-3 text-foreground/90 whitespace-pre-wrap">{bio}</p>}
           </div>
+
 
           {/* Actions row: Sign out (left) and Edit profile (right) */}
           <div className="mt-5 flex items-center justify-between gap-3">
@@ -402,6 +429,22 @@ function Profile() {
             <div className="space-y-1.5">
               <Label>Display name</Label>
               <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={40} className="h-11 rounded-xl" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5"><Globe className="h-3.5 w-3.5" /> Country</Label>
+                <select value={country} onChange={(e) => setCountry(e.target.value)} className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm">
+                  <option value="">Select…</option>
+                  {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.flag} {c.name}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5"><GraduationCap className="h-3.5 w-3.5" /> Class</Label>
+                <select value={grade} onChange={(e) => setGrade(e.target.value)} className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm">
+                  <option value="">Select…</option>
+                  {GRADES.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
+                </select>
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label>Bio</Label>
