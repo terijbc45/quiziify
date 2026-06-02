@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { Save, Lock, Camera, LogOut, Trophy, TrendingUp, Sparkles, Image as ImageIcon, Pencil, X, FileText } from "lucide-react";
+import { Save, Lock, Camera, LogOut, Trophy, TrendingUp, Sparkles, Image as ImageIcon, Pencil, X, FileText, Globe, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
+import { COUNTRIES, GRADES, countryByCode, gradeLabel } from "@/lib/locale-options";
 import { formatDistanceToNow } from "date-fns";
 
 export const Route = createFileRoute("/profile")({
