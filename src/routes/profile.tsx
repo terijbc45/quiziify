@@ -38,6 +38,8 @@ function Profile() {
   const [bio, setBio] = useState("");
   const [avatar, setAvatar] = useState<string | null>(null);
   const [cover, setCover] = useState<string | null>(null);
+  const [country, setCountry] = useState<string>("");
+  const [grade, setGrade] = useState<string>("");
   const [editing, setEditing] = useState(false);
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
