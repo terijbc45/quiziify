@@ -430,6 +430,22 @@ function Profile() {
               <Label>Display name</Label>
               <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={40} className="h-11 rounded-xl" />
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5"><Globe className="h-3.5 w-3.5" /> Country</Label>
+                <select value={country} onChange={(e) => setCountry(e.target.value)} className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm">
+                  <option value="">Select…</option>
+                  {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.flag} {c.name}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5"><GraduationCap className="h-3.5 w-3.5" /> Class</Label>
+                <select value={grade} onChange={(e) => setGrade(e.target.value)} className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm">
+                  <option value="">Select…</option>
+                  {GRADES.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
+                </select>
+              </div>
+            </div>
             <div className="space-y-1.5">
               <Label>Bio</Label>
               <Textarea value={bio} onChange={(e) => setBio(e.target.value)} maxLength={280} className="rounded-xl min-h-[120px]" placeholder="Tell people about yourself…" />
