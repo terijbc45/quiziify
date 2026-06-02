@@ -24,6 +24,8 @@ export const Route = createFileRoute("/profile")({
 const profileSchema = z.object({
   display_name: z.string().trim().min(1).max(40),
   bio: z.string().trim().max(280),
+  country: z.string().min(2).max(8).optional().or(z.literal("")),
+  grade: z.string().min(1).max(20).optional().or(z.literal("")),
 });
 
 function Profile() {
