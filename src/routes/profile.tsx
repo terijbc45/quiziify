@@ -95,18 +95,21 @@ function Profile() {
 
   const save = async () => {
     if (!user) return;
-    const parsed = profileSchema.safeParse({ display_name: displayName, bio });
+    const parsed = profileSchema.safeParse({ display_name: displayName, bio, country, grade });
     if (!parsed.success) { toast.error(parsed.error.issues[0].message); return; }
     setBusy(true);
     const { error } = await supabase.from("profiles").update({
       display_name: parsed.data.display_name,
       bio: parsed.data.bio,
+      country: parsed.data.country || null,
+      grade: parsed.data.grade || null,
       updated_at: new Date().toISOString(),
     }).eq("id", user.id);
     setBusy(false);
     if (error) toast.error(error.message);
     else { toast.success("Profile updated"); setEditing(false); }
   };
+
 
   const changePassword = async () => {
     if (!user?.email) { toast.error("No email on account"); return; }
