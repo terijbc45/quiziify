@@ -59,7 +59,9 @@ function Profile() {
           setDisplayName(data.display_name);
           setBio(data.bio ?? "");
           setAvatar(data.avatar_url ?? null);
-          setCover((data as any).cover_photo_url ?? null);
+          setCover((data as { cover_photo_url?: string | null }).cover_photo_url ?? null);
+          setCountry((data as { country?: string | null }).country ?? "");
+          setGrade((data as { grade?: string | null }).grade ?? "");
         }
       });
     supabase.from("level_progress").select("current_level,total_score").eq("user_id", user.id).maybeSingle()
