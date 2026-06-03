@@ -82,12 +82,14 @@ export const generateRamailoQuestions = createServerFn({ method: "POST" })
       }
     }
 
+    const lang = data.language ?? "en";
     const sysPrompt = `You generate VERY SIMPLE, fun, popular general-knowledge ("Ramailo") MCQs.
-${categoryPrompt(cat)}
+${categoryPrompt(cat, lang)}
 RULES:
-(1) Question text SHORT — under 80 chars (longer only if a specific monument/event needs clarity).
-(2) Each of the 4 options must be 1-2 words, never more than 4 words.
+(1) Question text SHORT — under 100 chars (longer only if a Lok Sewa style fact needs clarity).
+(2) Each of the 4 options must be 1-3 words, never more than 5 words.
 (3) Always include a vivid emoji.
+${cat === "random" ? `(4) Output language: ${lang === "ne" ? "Nepali (Devanagari)" : "English"}. All question text, options, and explanation must be in that language.` : ""}
 ${avoidHint}${latestBlock}
 
 Variation seed (do not mention): ${seed}.`;
