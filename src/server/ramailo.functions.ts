@@ -20,6 +20,7 @@ const Question = z.object({
 const QuestionSet = z.object({ questions: z.array(Question).min(1) });
 
 const Categories = z.enum(["random", "logo", "places", "food_animals"]);
+const Language = z.enum(["en", "ne"]);
 
 const Input = z.object({
   count: z.number().min(1).max(10).default(5),
@@ -28,9 +29,10 @@ const Input = z.object({
   includeLatest: z.boolean().optional(),
   category: Categories.optional(),
   model: z.string().max(80).optional(),
+  language: Language.optional(),
 });
 
-function categoryPrompt(cat: z.infer<typeof Categories>): string {
+function categoryPrompt(cat: z.infer<typeof Categories>, lang: z.infer<typeof Language>): string {
   switch (cat) {
     case "logo":
       return `Generate "guess the brand from its logo" questions. For EACH question:
@@ -43,14 +45,21 @@ function categoryPrompt(cat: z.infer<typeof Categories>): string {
       return `Generate "guess the place" questions. Mix two styles roughly 50/50:
 (A) Country flag → "Which country's flag is this?" — set "country_code" to the ISO 3166-1 alpha-2 code (lowercase, e.g. "fr", "jp", "br") and "subject" to the country name.
 (B) Famous monuments / landmarks / cities → "Where is the Eiffel Tower located?" / "Which city is the Colosseum in?" — set "subject" to the monument name; you may set "domain" empty.
-Options must be short (1-3 words). Mix continents.`;
+Options must be short (1-3 words). Mix continents. Include at least one Nepal-related question per batch (e.g. Pashupatinath, Mount Everest, Lumbini, Pokhara, Boudhanath).`;
     case "food_animals":
-      return `Generate fun trivia mixing famous foods and animals from around the world: dishes, fruits, drinks, mammals, birds, sea creatures, insects. E.g. "Which country is sushi from?", "Fastest land animal?", "What animal is a 'joey'?", "Pizza margherita originated in?". Use a vivid emoji per question.`;
+      return `Generate fun trivia mixing famous foods and animals from around the world: dishes, fruits, drinks, mammals, birds, sea creatures, insects. E.g. "Which country is sushi from?", "Fastest land animal?", "What animal is a 'joey'?", "Pizza margherita originated in?". Include at least one Nepali food (momo, dal bhat, sel roti, gundruk, yomari, dhindo) or Nepali wildlife (one-horned rhino, red panda, snow leopard, danphe). Use a vivid emoji per question.`;
     case "random":
     default:
-      return `Generate BROAD general-knowledge trivia covering ALL fields. For each batch, deliberately ROTATE across these buckets and pick a different one for each question: science (physics/chemistry/biology), space & astronomy, world history, geography & capitals, sports, movies & music, literature & mythology, technology & inventions, current affairs, math puzzles, world cultures & languages, food & cuisine, animals & nature. Never ask two questions from the same bucket. Use a vivid emoji per question.`;
+      return `Generate Nepal Lok Sewa Aayog (Public Service Commission) style general-knowledge MCQs. ${lang === "ne" ? "Write EVERYTHING (question, options, explanation) in Nepali (Devanagari script)." : "Write everything in clear English."} Strictly cover the SAME bucket-set Lok Sewa uses for samanya gyan (general knowledge):
+- Nepal: history (Lichchhavi, Malla, Shah, Rana, Panchayat, 2046 Jana Andolan, 2062/63), geography (provinces, rivers, mountains, districts), constitution & government (current constitution 2072, fundamental rights, federalism), economy & current affairs (recent budget, GDP, exports, latest appointments)
+- Nepali culture, festivals, literature, art, music, national symbols
+- World: geography, history, organizations (UN, SAARC, BRICS, WTO, IMF), capitals, currencies
+- Science (physics, chemistry, biology, IT basics), sports, environment
+- Latest current affairs (last 12 months) Nepal & world
+DELIBERATELY rotate across these buckets — never two questions from the same bucket per batch. Keep difficulty similar to Lok Sewa Aayog samanya gyan / IQ section. Use a vivid emoji per question.`;
   }
 }
+
 
 export const generateRamailoQuestions = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => Input.parse(input))
