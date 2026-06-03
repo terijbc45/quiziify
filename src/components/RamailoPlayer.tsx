@@ -98,8 +98,26 @@ export function RamailoPlayer({
   const grad = BG_GRADIENTS[idx % BG_GRADIENTS.length];
   const isRight = answered && picked === q.correct_index;
 
+  const openMore = async () => {
+    setMoreOpen(true);
+    if (summary) return;
+    setSummaryLoading(true);
+    const correct = q.options[q.correct_index];
+    const res = await explainQuestion({ data: { question: q.question, correct_answer: correct } });
+    setSummary(res.summary || res.error || "Couldn't load summary.");
+    setSummaryLoading(false);
+  };
+
   return (
     <div className="space-y-5 animate-slide-in max-w-2xl mx-auto">
+      <button
+        onClick={openMore}
+        className="fixed top-[64px] right-5 z-30 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary text-primary-foreground hover:opacity-90 text-[11px] font-bold shadow-glow"
+        aria-label="Deep dive"
+      >
+        <Sparkles className="h-3.5 w-3.5" /> More
+      </button>
+
       <div>
         <div className="flex items-center justify-between mb-2 text-sm gap-2">
           <span className="font-bold text-primary inline-flex items-center gap-1.5">
