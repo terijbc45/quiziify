@@ -61,7 +61,7 @@ export function prefetchQuiz(
 
 export function prefetchRamailo(
   cacheKey: string,
-  params: { count: number; avoid?: string[]; nonce?: string; includeLatest?: boolean; category?: "random" | "logo" | "places" | "food_animals"; model?: string },
+  params: { count: number; avoid?: string[]; nonce?: string; includeLatest?: boolean; category?: "random" | "logo" | "places" | "food_animals"; model?: string; language?: "en" | "ne" },
 ) {
   if (cache.has(cacheKey)) return cache.get(cacheKey)!;
   const p = generateRamailoQuestions({ data: params }).then((r) => ({
