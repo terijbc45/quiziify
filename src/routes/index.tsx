@@ -126,6 +126,8 @@ function CalendarPanel() {
   const [draft, setDraft] = useState("");
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Speech-bubble popup state — shown when tapping a date that already has a caption.
+  const [bubble, setBubble] = useState<{ date: Date; caption: string } | null>(null);
 
   const { from, to } = useMemo(() => {
     const f = new Date(month.getFullYear(), month.getMonth(), 1);
@@ -150,13 +152,35 @@ function CalendarPanel() {
 
   const key = (d: Date) => format(d, "yyyy-MM-dd");
 
-  const handleSelect = (d: Date | undefined) => {
-    if (!d) return;
+  const openEditor = (d: Date) => {
     setSelected(d);
     setDraft(captions[key(d)] ?? "");
+    setBubble(null);
     setOpen(true);
   };
 
+  const handleSelect = (d: Date | undefined) => {
+    if (!d) return;
+    setSelected(d);
+    const existing = captions[key(d)];
+    if (existing) {
+      // Show the caption as a speech-bubble popup (like the reference image).
+      setBubble({ date: d, caption: existing });
+    } else {
+      openEditor(d);
+    }
+  };
+
+  const removeCaption = async (d: Date) => {
+    if (!user) return;
+    const k = key(d);
+    await supabase.from("date_captions").delete().eq("user_id", user.id).eq("date", k);
+    const next = { ...captions };
+    delete next[k];
+    setCaptions(next);
+    setBubble(null);
+    toast.success("Caption removed");
+  };
 
   const save = async () => {
     if (!user || !selected) return;
