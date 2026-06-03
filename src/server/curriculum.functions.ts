@@ -28,15 +28,17 @@ async function firecrawlContext(query: string): Promise<string> {
   const key = process.env.FIRECRAWL_API_KEY;
   if (!key) return "";
   try {
+    // Bias toward Nepal Curriculum Development Centre + official .gov.np / .edu.np sources.
+    const nepalQuery = `${query} site:cdc.gov.np OR site:moecdc.gov.np OR site:moest.gov.np OR site:edusanjal.com OR Nepal CDC Curriculum Development Centre`;
     const res = await fetch("https://api.firecrawl.dev/v2/search", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ query, limit: 4, scrapeOptions: { formats: ["markdown"] } }),
+      body: JSON.stringify({ query: nepalQuery, limit: 5, scrapeOptions: { formats: ["markdown"] } }),
     });
     if (!res.ok) return "";
     const json = await res.json();
     const items = json?.data?.web ?? json?.data ?? [];
-    return items.slice(0, 4).map((i: any) => `- ${i.title ?? ""}: ${(i.markdown ?? i.description ?? "").slice(0, 800)}`).join("\n");
+    return items.slice(0, 5).map((i: any) => `- ${i.title ?? ""}: ${(i.markdown ?? i.description ?? "").slice(0, 800)}`).join("\n");
   } catch { return ""; }
 }
 
