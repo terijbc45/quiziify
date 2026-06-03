@@ -149,8 +149,8 @@ export const fetchCurriculumContext = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) => CtxIn.parse(i))
   .handler(async ({ data }) => {
     const q = data.chapter
-      ? `${data.country} ${data.grade} ${data.subject} chapter "${data.chapter}" key concepts`
-      : `${data.country} ${data.grade} ${data.subject} curriculum key topics`;
+      ? `Nepal CDC ${data.grade} ${data.subject} chapter "${data.chapter}" key concepts syllabus`
+      : `Nepal CDC ${data.grade} ${data.subject} curriculum key topics syllabus`;
     const ctx = await firecrawlContext(q);
     return { context: ctx.slice(0, 2500) };
   });
