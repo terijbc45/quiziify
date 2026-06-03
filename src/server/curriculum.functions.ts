@@ -75,10 +75,10 @@ export const fetchSubjects = createServerFn({ method: "POST" })
     const cached = await cacheGet<{ subjects: Subject[] }>(ck);
     if (cached?.subjects?.length) return { subjects: cached.subjects };
 
-    const ctx = await firecrawlContext(`${data.country} ${data.grade} school subjects curriculum syllabus`);
+    const ctx = await firecrawlContext(`Nepal ${data.grade} school subjects CDC curriculum syllabus`);
     const out = await aiExtract<{ subjects: Subject[] }>(
-      `You list the OFFICIAL school subjects studied in the given country & grade according to the actual national / common curriculum. Output 6-10 subjects, each with a single emoji and a short 1-line blurb. Use the provided real web context as ground truth when present.${ctx ? `\n\nWEB CONTEXT:\n${ctx}` : ""}`,
-      `Country: ${data.country}\nGrade/Class: ${data.grade}\nList the standard subjects.`,
+      `You list the OFFICIAL school subjects studied in NEPAL for the given grade according to the Curriculum Development Centre (CDC, Sanothimi Bhaktapur) — Nepal's government curriculum authority. Output 6-10 subjects, each with a single emoji and a short 1-line blurb. Use the provided real web context (Nepal CDC / government sources) as ground truth.${ctx ? `\n\nWEB CONTEXT:\n${ctx}` : ""}`,
+      `Country: Nepal\nGrade/Class: ${data.grade}\nList the standard CDC Nepal subjects.`,
       "submit_subjects",
       {
         type: "object",
