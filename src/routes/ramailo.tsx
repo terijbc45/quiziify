@@ -1,20 +1,22 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { type QuizQuestion } from "@/components/QuizPlayer";
 import { RamailoPlayer } from "@/components/RamailoPlayer";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { ArrowLeft, Sparkles, Globe2, Pizza, Building2, Shuffle } from "lucide-react";
+import { ArrowLeft, Sparkles, Globe2, Pizza, Building2, Shuffle, Languages } from "lucide-react";
 import { fetchSeenQuestions, hashQuestion, recordSeen, consumeCachedQuiz, prefetchRamailo, PRIMARY_MODEL, SECONDARY_MODEL } from "@/lib/quiz-cache";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/ramailo")({ component: () => <AppShell><Ramailo /></AppShell> });
 
 type Cat = "random" | "logo" | "places" | "food_animals";
+type Lang = "en" | "ne";
 
 const CATEGORIES: Array<{ id: Cat; label: string; emoji: string; icon: typeof Globe2; gradient: string; desc: string }> = [
-  { id: "random", label: "Random", emoji: "🎲", icon: Shuffle, gradient: "from-violet-500 to-fuchsia-500", desc: "A mix of fun general-knowledge" },
+  { id: "random", label: "Random", emoji: "🎲", icon: Shuffle, gradient: "from-violet-500 to-fuchsia-500", desc: "Lok Sewa style GK (Nepal & world)" },
   { id: "logo", label: "Logo", emoji: "🏷️", icon: Building2, gradient: "from-sky-500 to-cyan-500", desc: "Guess the brand from its logo" },
   { id: "places", label: "Places", emoji: "🌍", icon: Globe2, gradient: "from-emerald-500 to-teal-500", desc: "Flags, monuments & famous spots" },
   { id: "food_animals", label: "Foods & Animals", emoji: "🍕", icon: Pizza, gradient: "from-amber-500 to-orange-500", desc: "Tasty bites and wild creatures" },
@@ -24,6 +26,7 @@ function Ramailo() {
   const { user } = useAuth();
   const nav = useNavigate();
   const [category, setCategory] = useState<Cat | null>(null);
+  const [language, setLanguage] = useState<Lang>("en");
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +34,7 @@ function Ramailo() {
 
   const newNonce = () => `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
-  const load = async (cat: Cat) => {
+  const load = async (cat: Cat, lang: Lang) => {
     if (!user) return;
     setLoading(true);
     setError(null);
@@ -39,17 +42,17 @@ function Ramailo() {
     try {
       const seen = await fetchSeenQuestions(user.id);
       const includeLatest = cat === "random" && Math.random() < 0.6;
+      const langKey = cat === "random" ? `:${lang}` : "";
 
-      const key = `ramailo:${user.id}:${cat}:next`;
+      const key = `ramailo:${user.id}:${cat}${langKey}:next`;
       let promise = consumeCachedQuiz(key);
       if (!promise) {
-        promise = prefetchRamailo(`ramailo:${user.id}:${cat}:${newNonce()}`, {
-          count: 5, avoid: seen.slice(-150), nonce: newNonce(), includeLatest, category: cat, model: PRIMARY_MODEL,
+        promise = prefetchRamailo(`ramailo:${user.id}:${cat}${langKey}:${newNonce()}`, {
+          count: 5, avoid: seen.slice(-150), nonce: newNonce(), includeLatest, category: cat, model: PRIMARY_MODEL, language: lang,
         });
       }
-      // Pre-warm next round in parallel with secondary model
-      prefetchRamailo(`ramailo:${user.id}:${cat}:next`, {
-        count: 5, avoid: seen.slice(-150), nonce: newNonce(), includeLatest, category: cat, model: SECONDARY_MODEL,
+      prefetchRamailo(`ramailo:${user.id}:${cat}${langKey}:next`, {
+        count: 5, avoid: seen.slice(-150), nonce: newNonce(), includeLatest, category: cat, model: SECONDARY_MODEL, language: lang,
       });
 
       const r = await promise;
@@ -65,7 +68,13 @@ function Ramailo() {
     }
   };
 
-  const pick = (cat: Cat) => { setCategory(cat); setEndPrompt(null); load(cat); };
+  const pick = (cat: Cat) => { setCategory(cat); setEndPrompt(null); load(cat, language); };
+
+  const switchLanguage = (lang: Lang) => {
+    if (lang === language) return;
+    setLanguage(lang);
+    if (category === "random") load("random", lang);
+  };
 
   const finish = async (score: number) => {
     if (user) {
@@ -77,7 +86,7 @@ function Ramailo() {
     setEndPrompt({ score, total: questions.length });
   };
 
-  const playAgain = async () => { if (category) { setEndPrompt(null); await load(category); } };
+  const playAgain = async () => { if (category) { setEndPrompt(null); await load(category, language); } };
 
   // ----- Picker view -----
   if (!category) {
@@ -115,9 +124,29 @@ function Ramailo() {
   // ----- Quiz view -----
   return (
     <div className="space-y-6">
-      <Button variant="ghost" size="sm" onClick={() => { setCategory(null); setQuestions([]); setEndPrompt(null); }} className="rounded-full">
-        <ArrowLeft className="h-4 w-4 mr-1" /> Categories
-      </Button>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <Button variant="ghost" size="sm" onClick={() => { setCategory(null); setQuestions([]); setEndPrompt(null); }} className="rounded-full">
+          <ArrowLeft className="h-4 w-4 mr-1" /> Categories
+        </Button>
+        {category === "random" && (
+          <div className="inline-flex items-center gap-1 p-1 rounded-full bg-muted border border-border shadow-soft">
+            <Languages className="h-3.5 w-3.5 text-muted-foreground ml-1.5" />
+            {(["en", "ne"] as const).map((l) => (
+              <button
+                key={l}
+                onClick={() => switchLanguage(l)}
+                className={cn(
+                  "px-3 py-1 rounded-full text-xs font-bold transition-all",
+                  language === l ? "bg-card text-primary shadow-card" : "text-muted-foreground hover:text-foreground",
+                )}
+                aria-pressed={language === l}
+              >
+                {l === "en" ? "English" : "नेपाली"}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
       {endPrompt ? (
         <div className="rounded-3xl bg-gradient-card p-8 text-center shadow-glow animate-slide-in max-w-lg mx-auto">
           <h2 className="text-3xl font-bold mb-2">Ramailo done! 🎉</h2>
@@ -134,7 +163,7 @@ function Ramailo() {
           error={error}
           questions={questions}
           onFinish={finish}
-          onRetry={() => load(category)}
+          onRetry={() => load(category, language)}
         />
       )}
     </div>

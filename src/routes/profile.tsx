@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { Save, Lock, Camera, LogOut, Trophy, TrendingUp, Sparkles, Image as ImageIcon, Pencil, X, FileText, Globe, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
-import { COUNTRIES, GRADES, countryByCode, gradeLabel } from "@/lib/locale-options";
+import { GRADES, countryByCode, gradeLabel, DEFAULT_COUNTRY } from "@/lib/locale-options";
 import { formatDistanceToNow } from "date-fns";
 
 export const Route = createFileRoute("/profile")({
@@ -38,7 +38,7 @@ function Profile() {
   const [bio, setBio] = useState("");
   const [avatar, setAvatar] = useState<string | null>(null);
   const [cover, setCover] = useState<string | null>(null);
-  const [country, setCountry] = useState<string>("");
+  const country = DEFAULT_COUNTRY; // Nepal-only app
   const [grade, setGrade] = useState<string>("");
   const [editing, setEditing] = useState(false);
   const [oldPassword, setOldPassword] = useState("");
@@ -60,7 +60,6 @@ function Profile() {
           setBio(data.bio ?? "");
           setAvatar(data.avatar_url ?? null);
           setCover((data as { cover_photo_url?: string | null }).cover_photo_url ?? null);
-          setCountry((data as { country?: string | null }).country ?? "");
           setGrade((data as { grade?: string | null }).grade ?? "");
         }
       });
@@ -430,21 +429,15 @@ function Profile() {
               <Label>Display name</Label>
               <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={40} className="h-11 rounded-xl" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="flex items-center gap-1.5"><Globe className="h-3.5 w-3.5" /> Country</Label>
-                <select value={country} onChange={(e) => setCountry(e.target.value)} className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm">
-                  <option value="">Select…</option>
-                  {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.flag} {c.name}</option>)}
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="flex items-center gap-1.5"><GraduationCap className="h-3.5 w-3.5" /> Class</Label>
-                <select value={grade} onChange={(e) => setGrade(e.target.value)} className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm">
-                  <option value="">Select…</option>
-                  {GRADES.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
-                </select>
-              </div>
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5"><GraduationCap className="h-3.5 w-3.5" /> Class</Label>
+              <select value={grade} onChange={(e) => setGrade(e.target.value)} className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm">
+                <option value="">Select your class…</option>
+                {GRADES.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
+              </select>
+              <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 mt-1">
+                <Globe className="h-3 w-3" /> 🇳🇵 Quiziify is tailored to the Nepal CDC curriculum.
+              </p>
             </div>
             <div className="space-y-1.5">
               <Label>Bio</Label>

@@ -21,7 +21,7 @@ export function useProfile() {
     supabase.from("profiles").select("display_name,country,grade,avatar_url").eq("id", user.id).maybeSingle()
       .then(({ data }) => {
         if (cancelled) return;
-        if (data) setProfile(data as ProfileLite);
+        if (data) setProfile({ ...(data as ProfileLite), country: (data as ProfileLite).country ?? "np" });
         setLoading(false);
       });
     return () => { cancelled = true; };
@@ -30,7 +30,7 @@ export function useProfile() {
   const refresh = async () => {
     if (!user) return;
     const { data } = await supabase.from("profiles").select("display_name,country,grade,avatar_url").eq("id", user.id).maybeSingle();
-    if (data) setProfile(data as ProfileLite);
+    if (data) setProfile({ ...(data as ProfileLite), country: (data as ProfileLite).country ?? "np" });
   };
 
   return { profile, loading, refresh };

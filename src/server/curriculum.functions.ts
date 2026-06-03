@@ -28,15 +28,17 @@ async function firecrawlContext(query: string): Promise<string> {
   const key = process.env.FIRECRAWL_API_KEY;
   if (!key) return "";
   try {
+    // Bias toward Nepal Curriculum Development Centre + official .gov.np / .edu.np sources.
+    const nepalQuery = `${query} site:cdc.gov.np OR site:moecdc.gov.np OR site:moest.gov.np OR site:edusanjal.com OR Nepal CDC Curriculum Development Centre`;
     const res = await fetch("https://api.firecrawl.dev/v2/search", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ query, limit: 4, scrapeOptions: { formats: ["markdown"] } }),
+      body: JSON.stringify({ query: nepalQuery, limit: 5, scrapeOptions: { formats: ["markdown"] } }),
     });
     if (!res.ok) return "";
     const json = await res.json();
     const items = json?.data?.web ?? json?.data ?? [];
-    return items.slice(0, 4).map((i: any) => `- ${i.title ?? ""}: ${(i.markdown ?? i.description ?? "").slice(0, 800)}`).join("\n");
+    return items.slice(0, 5).map((i: any) => `- ${i.title ?? ""}: ${(i.markdown ?? i.description ?? "").slice(0, 800)}`).join("\n");
   } catch { return ""; }
 }
 
@@ -73,10 +75,10 @@ export const fetchSubjects = createServerFn({ method: "POST" })
     const cached = await cacheGet<{ subjects: Subject[] }>(ck);
     if (cached?.subjects?.length) return { subjects: cached.subjects };
 
-    const ctx = await firecrawlContext(`${data.country} ${data.grade} school subjects curriculum syllabus`);
+    const ctx = await firecrawlContext(`Nepal ${data.grade} school subjects CDC curriculum syllabus`);
     const out = await aiExtract<{ subjects: Subject[] }>(
-      `You list the OFFICIAL school subjects studied in the given country & grade according to the actual national / common curriculum. Output 6-10 subjects, each with a single emoji and a short 1-line blurb. Use the provided real web context as ground truth when present.${ctx ? `\n\nWEB CONTEXT:\n${ctx}` : ""}`,
-      `Country: ${data.country}\nGrade/Class: ${data.grade}\nList the standard subjects.`,
+      `You list the OFFICIAL school subjects studied in NEPAL for the given grade according to the Curriculum Development Centre (CDC, Sanothimi Bhaktapur) — Nepal's government curriculum authority. Output 6-10 subjects, each with a single emoji and a short 1-line blurb. Use the provided real web context (Nepal CDC / government sources) as ground truth.${ctx ? `\n\nWEB CONTEXT:\n${ctx}` : ""}`,
+      `Country: Nepal\nGrade/Class: ${data.grade}\nList the standard CDC Nepal subjects.`,
       "submit_subjects",
       {
         type: "object",
@@ -109,10 +111,10 @@ export const fetchChapters = createServerFn({ method: "POST" })
     const cached = await cacheGet<{ chapters: Chapter[]; context: string }>(ck);
     if (cached?.chapters?.length) return cached;
 
-    const ctx = await firecrawlContext(`${data.country} ${data.grade} ${data.subject} chapters syllabus index`);
+    const ctx = await firecrawlContext(`Nepal ${data.grade} ${data.subject} chapters syllabus index CDC`);
     const out = await aiExtract<{ chapters: Chapter[] }>(
-      `You list the OFFICIAL chapter/unit names of the given subject for the given country & grade, in textbook order, based on the real current curriculum. Output 6-15 chapters. Each has a single emoji + 1-line summary. Use the provided web context as ground truth.${ctx ? `\n\nWEB CONTEXT:\n${ctx}` : ""}`,
-      `Country: ${data.country}\nGrade: ${data.grade}\nSubject: ${data.subject}\nList chapters in order.`,
+      `You list the OFFICIAL chapter/unit names of the given subject for the given grade in NEPAL, in textbook order, based on the current Nepal Curriculum Development Centre (CDC) syllabus. Output 6-15 chapters. Each has a single emoji + 1-line summary. Use the provided web context (Nepal CDC / government sources) as ground truth.${ctx ? `\n\nWEB CONTEXT:\n${ctx}` : ""}`,
+      `Country: Nepal\nGrade: ${data.grade}\nSubject: ${data.subject}\nList chapters in textbook order according to Nepal CDC.`,
       "submit_chapters",
       {
         type: "object",
@@ -147,8 +149,8 @@ export const fetchCurriculumContext = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) => CtxIn.parse(i))
   .handler(async ({ data }) => {
     const q = data.chapter
-      ? `${data.country} ${data.grade} ${data.subject} chapter "${data.chapter}" key concepts`
-      : `${data.country} ${data.grade} ${data.subject} curriculum key topics`;
+      ? `Nepal CDC ${data.grade} ${data.subject} chapter "${data.chapter}" key concepts syllabus`
+      : `Nepal CDC ${data.grade} ${data.subject} curriculum key topics syllabus`;
     const ctx = await firecrawlContext(q);
     return { context: ctx.slice(0, 2500) };
   });
