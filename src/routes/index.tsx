@@ -245,7 +245,7 @@ function CalendarPanel() {
       </div>
 
       <p className="text-xs text-muted-foreground text-center mt-3">
-        Tap any date to view or add an optional caption.
+        Tap a date to view its caption, or add one if it's empty.
       </p>
 
       {Object.keys(captions).length > 0 && (
@@ -259,7 +259,7 @@ function CalendarPanel() {
                 return (
                   <button
                     key={k}
-                    onClick={() => { setSelected(d); setDraft(text); setOpen(true); }}
+                    onClick={() => setBubble({ date: d, caption: text })}
                     className="group flex items-start gap-2 text-left"
                   >
                     <span className="mt-1 shrink-0 text-xs font-bold text-primary tabular-nums w-10">
@@ -302,6 +302,48 @@ function CalendarPanel() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Speech-bubble caption popup — shown when tapping a date that has a caption */}
+      {bubble && (
+        <div
+          className="fixed inset-0 z-[80] bg-background/60 backdrop-blur-md flex items-center justify-center p-6 animate-slide-in"
+          onClick={() => setBubble(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative max-w-sm w-full flex flex-col items-center"
+          >
+            <p className="text-white text-xs font-semibold mb-3 px-3 py-1 rounded-full bg-foreground/80 shadow-soft">
+              {format(bubble.date, "PPP")}
+            </p>
+            <div className="relative inline-block w-full">
+              <div className="relative px-5 py-4 rounded-3xl rounded-bl-md border-2 border-foreground bg-background text-foreground text-lg font-semibold shadow-glow break-words text-center animate-scale-in">
+                {bubble.caption}
+                <span
+                  aria-hidden
+                  className="absolute -bottom-2.5 left-6 h-5 w-5 rotate-45 border-b-2 border-r-2 border-foreground bg-background"
+                />
+              </div>
+            </div>
+            <div className="mt-6 flex items-center gap-2 flex-wrap justify-center">
+              <Button size="sm" variant="outline" className="rounded-full" onClick={() => openEditor(bubble.date)}>
+                <Pencil className="h-4 w-4 mr-1" /> Edit
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="rounded-full text-destructive border-destructive/40 hover:bg-destructive/10"
+                onClick={() => removeCaption(bubble.date)}
+              >
+                Remove
+              </Button>
+              <Button size="sm" className="rounded-full bg-gradient-hero" onClick={() => setBubble(null)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
