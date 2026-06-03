@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Brain, Lock, Mail, Shield, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { COUNTRIES, GRADES } from "@/lib/locale-options";
+import { GRADES, DEFAULT_COUNTRY } from "@/lib/locale-options";
 
 export const Route = createFileRoute("/auth")({ component: AuthPage });
 
@@ -28,7 +28,7 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
-  const [country, setCountry] = useState("");
+  const country = DEFAULT_COUNTRY; // Quiziify is a Nepal-only app
   const [grade, setGrade] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -36,8 +36,8 @@ function AuthPage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (mode === "signup" && (!country || !grade)) {
-      toast.error("Please choose your country and class");
+    if (mode === "signup" && !grade) {
+      toast.error("Please choose your class");
       return;
     }
     const parsed = schema.safeParse({ email, password, displayName: mode === "signup" ? displayName : undefined, country: mode === "signup" ? country : undefined, grade: mode === "signup" ? grade : undefined });
@@ -121,21 +121,15 @@ function AuthPage() {
                     <Input id="dn" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Alex" className="pl-9 h-11 rounded-xl" maxLength={40} />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="co">Country</Label>
-                    <select id="co" value={country} onChange={(e) => setCountry(e.target.value)} required className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm">
-                      <option value="">Select…</option>
-                      {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.flag} {c.name}</option>)}
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="gr">Class</Label>
-                    <select id="gr" value={grade} onChange={(e) => setGrade(e.target.value)} required className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm">
-                      <option value="">Select…</option>
-                      {GRADES.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
-                    </select>
-                  </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="gr">Class</Label>
+                  <select id="gr" value={grade} onChange={(e) => setGrade(e.target.value)} required className="w-full h-11 rounded-xl border border-input bg-background px-3 text-sm">
+                    <option value="">Select your class…</option>
+                    {GRADES.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
+                  </select>
+                  <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                    <span>🇳🇵</span> Quiziify is tailored to the Nepal CDC curriculum.
+                  </p>
                 </div>
               </>
             )}
