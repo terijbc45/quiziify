@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Check, X, ArrowRight, Sparkles, Zap } from "lucide-react";
+import { Check, X, ArrowRight, Sparkles, Zap, BookOpen, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { createPortal } from "react-dom";
 import type { QuizQuestion } from "@/components/QuizPlayer";
 import { BrainLoader } from "@/components/BrainLoader";
+import { explainQuestion } from "@/server/quiz.functions";
 
 const BG_GRADIENTS = [
   "from-pink-400 via-rose-400 to-orange-400",
@@ -46,8 +48,20 @@ export function RamailoPlayer({
   const [score, setScore] = useState(0);
   const [done, setDone] = useState(false);
   const [streak, setStreak] = useState(0);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [summary, setSummary] = useState("");
+  const [summaryLoading, setSummaryLoading] = useState(false);
 
-  useEffect(() => { setIdx(0); setPicked(null); setScore(0); setDone(false); setStreak(0); }, [questions]);
+  useEffect(() => { setIdx(0); setPicked(null); setScore(0); setDone(false); setStreak(0); setSummary(""); }, [questions]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    if (moreOpen) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => { document.body.style.overflow = prev; };
+    }
+  }, [moreOpen]);
 
   if (loading) return <BrainLoader />;
 
