@@ -227,13 +227,40 @@ export function RamailoPlayer({
         <Button
           onClick={() => {
             if (idx + 1 >= questions.length) setDone(true);
-            else { setIdx(idx + 1); setPicked(null); }
+            else { setIdx(idx + 1); setPicked(null); setSummary(""); }
           }}
           className="w-full h-12 rounded-2xl bg-gradient-hero font-bold text-base"
         >
           {idx + 1 >= questions.length ? "See results 🎊" : "Next"}
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
+      )}
+
+      {moreOpen && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[100] bg-background/30 backdrop-blur-2xl overflow-y-auto animate-slide-in">
+          <button
+            onClick={() => setMoreOpen(false)}
+            aria-label="Close"
+            className="fixed top-4 right-4 z-[101] h-10 w-10 rounded-full bg-background/80 hover:bg-background border border-border flex items-center justify-center shadow-card"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <div className="max-w-2xl mx-auto px-5 sm:px-8 pt-16 pb-12">
+            <h3 className="flex items-center gap-2 text-3xl font-bold mb-6 pr-10 text-foreground">
+              <BookOpen className="h-7 w-7 text-primary" /> Deep dive
+            </h3>
+            {summaryLoading ? (
+              <div className="flex items-center gap-3 py-8 text-muted-foreground">
+                <Loader2 className="h-5 w-5 animate-spin" /> Crafting an interactive summary…
+              </div>
+            ) : (
+              <div className="prose prose-lg max-w-none whitespace-pre-wrap text-foreground leading-relaxed text-base sm:text-lg">
+                {summary}
+              </div>
+            )}
+          </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
