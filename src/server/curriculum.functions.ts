@@ -111,10 +111,10 @@ export const fetchChapters = createServerFn({ method: "POST" })
     const cached = await cacheGet<{ chapters: Chapter[]; context: string }>(ck);
     if (cached?.chapters?.length) return cached;
 
-    const ctx = await firecrawlContext(`${data.country} ${data.grade} ${data.subject} chapters syllabus index`);
+    const ctx = await firecrawlContext(`Nepal ${data.grade} ${data.subject} chapters syllabus index CDC`);
     const out = await aiExtract<{ chapters: Chapter[] }>(
-      `You list the OFFICIAL chapter/unit names of the given subject for the given country & grade, in textbook order, based on the real current curriculum. Output 6-15 chapters. Each has a single emoji + 1-line summary. Use the provided web context as ground truth.${ctx ? `\n\nWEB CONTEXT:\n${ctx}` : ""}`,
-      `Country: ${data.country}\nGrade: ${data.grade}\nSubject: ${data.subject}\nList chapters in order.`,
+      `You list the OFFICIAL chapter/unit names of the given subject for the given grade in NEPAL, in textbook order, based on the current Nepal Curriculum Development Centre (CDC) syllabus. Output 6-15 chapters. Each has a single emoji + 1-line summary. Use the provided web context (Nepal CDC / government sources) as ground truth.${ctx ? `\n\nWEB CONTEXT:\n${ctx}` : ""}`,
+      `Country: Nepal\nGrade: ${data.grade}\nSubject: ${data.subject}\nList chapters in textbook order according to Nepal CDC.`,
       "submit_chapters",
       {
         type: "object",
