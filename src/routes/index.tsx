@@ -245,41 +245,8 @@ function CalendarPanel() {
       </div>
 
       <p className="text-xs text-muted-foreground text-center mt-3">
-        Tap a date to view its caption, or add one if it's empty.
+        Tap a date with a caption to see its popup, or tap an empty date to add one.
       </p>
-
-      {Object.keys(captions).length > 0 && (
-        <div className="mt-5 space-y-2.5">
-          <p className="text-xs font-semibold text-muted-foreground px-1">Captions this month</p>
-          <div className="flex flex-col gap-2.5">
-            {Object.entries(captions)
-              .sort(([a], [b]) => a.localeCompare(b))
-              .map(([k, text]) => {
-                const d = new Date(k + "T00:00:00");
-                return (
-                  <button
-                    key={k}
-                    onClick={() => setBubble({ date: d, caption: text })}
-                    className="group flex items-start gap-2 text-left"
-                  >
-                    <span className="mt-1 shrink-0 text-xs font-bold text-primary tabular-nums w-10">
-                      {format(d, "MMM d")}
-                    </span>
-                    <span className="relative inline-block max-w-full">
-                      <span className="block px-3.5 py-2 rounded-2xl rounded-bl-sm border-2 border-foreground/80 bg-background text-sm text-foreground/90 shadow-sm group-hover:bg-muted transition-colors break-words">
-                        {text}
-                      </span>
-                      <span
-                        aria-hidden
-                        className="absolute -bottom-1.5 left-2 h-3 w-3 rotate-45 border-b-2 border-r-2 border-foreground/80 bg-background"
-                      />
-                    </span>
-                  </button>
-                );
-              })}
-          </div>
-        </div>
-      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
