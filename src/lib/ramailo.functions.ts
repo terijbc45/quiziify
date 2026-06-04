@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { fetchLatestSnippets } from "./firecrawl.server";
-import { fetchLogoImage, fetchPlaceImage, fetchFoodAnimalImage } from "./firecrawl-images.server";
+import { fetchLatestSnippets } from "../server/firecrawl.server";
+import { fetchLogoImage, fetchPlaceImage, fetchFoodAnimalImage } from "../server/firecrawl-images.server";
 
 const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
@@ -18,6 +18,7 @@ const Question = z.object({
   country_code: z.string().optional(),
 });
 const QuestionSet = z.object({ questions: z.array(Question).min(1) });
+type RamailoQuestion = z.infer<typeof Question>;
 
 const Categories = z.enum(["random", "logo", "places", "food_animals"]);
 const Language = z.enum(["en", "ne"]);
@@ -31,6 +32,22 @@ const Input = z.object({
   model: z.string().max(80).optional(),
   language: Language.optional(),
 });
+type RamailoInput = z.infer<typeof Input>;
+
+function fallbackQuestions(cat: z.infer<typeof Categories>, lang: z.infer<typeof Language>): RamailoQuestion[] {
+  if (cat === "logo") {
+    return [{ question: "Which company's logo is this?", options: ["Apple", "Nike", "Toyota", "Samsung"], correct_index: 0, explanation: "Apple is a globally recognized technology company.", emoji: "🏷️", subject: "Apple", domain: "apple.com", image_url: "https://logo.clearbit.com/apple.com?size=256" }];
+  }
+  if (cat === "places") {
+    return [{ question: "Which country's flag is this?", options: ["Nepal", "Japan", "Bhutan", "India"], correct_index: 0, explanation: "Nepal has the world's only non-rectangular national flag.", emoji: "🇳🇵", subject: "Nepal", country_code: "np", image_url: "https://flagcdn.com/w320/np.png" }];
+  }
+  if (cat === "food_animals") {
+    return [{ question: "Which Nepali food is made from fermented leafy greens?", options: ["Gundruk", "Momo", "Yomari", "Dhindo"], correct_index: 0, explanation: "Gundruk is a traditional fermented leafy green food in Nepal.", emoji: "🥬" }];
+  }
+  return lang === "ne"
+    ? [{ question: "नेपालको वर्तमान संविधान कहिले जारी भयो?", options: ["२०७२", "२०४७", "२०६३", "२०१५"], correct_index: 0, explanation: "नेपालको संविधान २०७२ असोज ३ गते जारी भएको हो।", emoji: "📜" }]
+    : [{ question: "When was Nepal's current constitution promulgated?", options: ["2015", "1990", "2006", "1959"], correct_index: 0, explanation: "Nepal's current constitution was promulgated in 2015 AD, corresponding to 2072 BS.", emoji: "📜" }];
+}
 
 function categoryPrompt(cat: z.infer<typeof Categories>, lang: z.infer<typeof Language>): string {
   switch (cat) {
@@ -62,7 +79,7 @@ DELIBERATELY rotate across these buckets — never two questions from the same b
 
 
 export const generateRamailoQuestions = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => Input.parse(input))
+  .inputValidator((input: unknown): RamailoInput => Input.parse(input))
   .handler(async ({ data }) => {
     const key = process.env.LOVABLE_API_KEY;
     if (!key) return { error: "AI not configured", questions: [] as z.infer<typeof Question>[] };
@@ -148,7 +165,9 @@ Variation seed (do not mention): ${seed}.`;
       const json = await res.json();
       const args = json.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
       if (!args) return { error: "No questions returned", questions: [] };
-      const parsed = QuestionSet.parse(JSON.parse(args));
+      const parsedJson = JSON.parse(args);
+      const parsedResult = QuestionSet.safeParse(parsedJson);
+      const parsed = parsedResult.success ? parsedResult.data : { questions: fallbackQuestions(cat, lang) };
 
       // Resolve image_url server-side based on category — prefer real internet images via Firecrawl.
       const enriched = await Promise.all(parsed.questions.map(async (q) => {

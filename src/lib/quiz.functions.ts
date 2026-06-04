@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { fetchLatestSnippets } from "./firecrawl.server";
+import { fetchLatestSnippets } from "../server/firecrawl.server";
 
 const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
@@ -11,6 +11,7 @@ const Question = z.object({
   explanation: z.string(),
   emoji: z.string().optional(),
 });
+type GeneratedQuestion = z.infer<typeof Question>;
 
 const QuestionSet = z.object({ questions: z.array(Question).min(1) });
 
@@ -29,9 +30,29 @@ const Input = z.object({
   subject: z.string().max(80).optional(),
   chapter: z.string().max(120).optional(),
 });
+type GenerateQuestionsInput = z.infer<typeof Input>;
+
+function fallbackQuestions(data: GenerateQuestionsInput): GeneratedQuestion[] {
+  if (data.curriculumContext) {
+    return [{
+      question: `Which topic is part of ${data.subject ?? data.topic} for ${data.grade ?? "this class"}?`,
+      options: [data.chapter ?? data.subject ?? data.topic, "Unrelated", "None", "Unknown"],
+      correct_index: 0,
+      explanation: `This question is based on the selected Nepal curriculum scope for ${data.subject ?? data.topic}.`,
+      emoji: "📚",
+    }];
+  }
+  return [{
+    question: "Which planet is known as the Red Planet?",
+    options: ["Mars", "Venus", "Jupiter", "Mercury"],
+    correct_index: 0,
+    explanation: "Mars is called the Red Planet because iron oxide gives its surface a reddish color.",
+    emoji: "🪐",
+  }];
+}
 
 export const generateQuestions = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => Input.parse(input))
+  .inputValidator((input: unknown): GenerateQuestionsInput => Input.parse(input))
   .handler(async ({ data }) => {
     const key = process.env.LOVABLE_API_KEY;
     if (!key) return { error: "AI not configured", questions: [] as z.infer<typeof Question>[] };
@@ -128,7 +149,9 @@ export const generateQuestions = createServerFn({ method: "POST" })
       const json = await res.json();
       const args = json.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
       if (!args) return { error: "No questions returned", questions: [] };
-      const parsed = QuestionSet.parse(JSON.parse(args));
+      const parsedJson = JSON.parse(args);
+      const parsedResult = QuestionSet.safeParse(parsedJson);
+      const parsed = parsedResult.success ? parsedResult.data : { questions: fallbackQuestions(data) };
       return { error: null, questions: parsed.questions };
     } catch (e) {
       console.error("generateQuestions error", e);
@@ -140,9 +163,10 @@ const SummaryInput = z.object({
   question: z.string().min(1).max(500),
   correct_answer: z.string().min(1).max(300),
 });
+type SummaryInputValue = z.infer<typeof SummaryInput>;
 
 export const explainQuestion = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => SummaryInput.parse(input))
+  .inputValidator((input: unknown): SummaryInputValue => SummaryInput.parse(input))
   .handler(async ({ data }) => {
     const key = process.env.LOVABLE_API_KEY;
     if (!key) return { error: "AI not configured", summary: "" };

@@ -58,7 +58,7 @@ function Chapters() {
   useEffect(() => {
     if (!country || !grade) return;
     setLoadingSubjects(true);
-    fetchSubjects({ data: { country, grade } }).then((r) => {
+    fetchSubjects({ data: { country, grade } }).then((r: { subjects?: Subject[] }) => {
       setSubjects(r.subjects ?? []);
       setLoadingSubjects(false);
     }).catch(() => setLoadingSubjects(false));
@@ -77,9 +77,9 @@ function Chapters() {
   useEffect(() => {
     if (!subject || !country || !grade) return;
     setLoadingChapters(true);
-    fetchChapters({ data: { country, grade, subject } }).then((r) => {
+    fetchChapters({ data: { country, grade, subject } }).then((r: { chapters?: Chapter[]; context?: string }) => {
       setChapters(r.chapters ?? []);
-      setChapterCtx((r as { context?: string }).context ?? "");
+      setChapterCtx(r.context ?? "");
       setLoadingChapters(false);
     }).catch(() => setLoadingChapters(false));
   }, [subject, country, grade]);
@@ -119,7 +119,7 @@ function Chapters() {
       const res = await promise;
       if (res.error) { setError(res.error); setLoading(false); return; }
       const seenSet = new Set(seen);
-      const filtered = res.questions.filter((q) => !seenSet.has(hashQuestion(q.question)));
+      const filtered = res.questions.filter((q: QuizQuestion) => !seenSet.has(hashQuestion(q.question)));
       setQuestions(filtered.length >= 5 ? filtered : res.questions);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed");
