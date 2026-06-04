@@ -4,7 +4,7 @@ import { Progress } from "@/components/ui/progress";
 import { Check, X, Loader2, ArrowRight, Trophy, Sparkles, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createPortal } from "react-dom";
-import { explainQuestion } from "@/server/quiz.functions";
+import { explainQuestion } from "@/lib/quiz.functions";
 import { BrainLoader } from "@/components/BrainLoader";
 
 export type QuizQuestion = {

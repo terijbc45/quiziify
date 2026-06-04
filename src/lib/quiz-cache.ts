@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
-import { generateQuestions } from "@/server/quiz.functions";
-import { generateRamailoQuestions } from "@/server/ramailo.functions";
+import { generateQuestions } from "@/lib/quiz.functions";
+import { generateRamailoQuestions } from "@/lib/ramailo.functions";
 import type { QuizQuestion } from "@/components/QuizPlayer";
 
 // Simple deterministic hash so we can de-dupe across sessions

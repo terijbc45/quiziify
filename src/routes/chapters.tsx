@@ -10,7 +10,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { ArrowLeft, ArrowRight, BookOpen, Check, RotateCcw, Trophy, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { consumeCachedQuiz, fetchSeenQuestions, hashQuestion, prefetchQuiz, recordSeen, PRIMARY_MODEL, SECONDARY_MODEL } from "@/lib/quiz-cache";
-import { fetchSubjects, fetchChapters } from "@/server/curriculum.functions";
+import { fetchSubjects, fetchChapters } from "@/lib/curriculum.functions";
 import { countryByCode, gradeLabel } from "@/lib/locale-options";
 
 export const Route = createFileRoute("/chapters")({ component: () => <AppShell><Chapters /></AppShell> });
