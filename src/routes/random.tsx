@@ -48,7 +48,7 @@ function Random() {
   useEffect(() => {
     if (!country || !grade) return;
     setLoadingSubjects(true);
-    fetchSubjects({ data: { country, grade } }).then((r) => {
+    fetchSubjects({ data: { country, grade } }).then((r: { subjects?: Subject[] }) => {
       setSubjects(r.subjects ?? []);
       setLoadingSubjects(false);
     }).catch(() => setLoadingSubjects(false));
@@ -89,7 +89,7 @@ function Random() {
       const res = await promise;
       if (res.error) { setError(res.error); setLoading(false); return; }
       const seenSet = new Set(seen);
-      const filtered = res.questions.filter((q) => !seenSet.has(hashQuestion(q.question)));
+      const filtered = res.questions.filter((q: QuizQuestion) => !seenSet.has(hashQuestion(q.question)));
       setQuestions(filtered.length >= 3 ? filtered : res.questions);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed");

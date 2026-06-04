@@ -45,7 +45,7 @@ function Ramailo() {
       const langKey = cat === "random" ? `:${lang}` : "";
 
       const key = `ramailo:${user.id}:${cat}${langKey}:next`;
-      let promise = consumeCachedQuiz(key);
+      let promise: ReturnType<typeof prefetchRamailo> | undefined = consumeCachedQuiz(key);
       if (!promise) {
         promise = prefetchRamailo(`ramailo:${user.id}:${cat}${langKey}:${newNonce()}`, {
           count: 5, avoid: seen.slice(-150), nonce: newNonce(), includeLatest, category: cat, model: PRIMARY_MODEL, language: lang,
@@ -58,7 +58,7 @@ function Ramailo() {
       const r = await promise;
       if (r.error) { setError(r.error); setLoading(false); return; }
       const seenSet = new Set(seen);
-      const filtered = r.questions.filter((q) => !seenSet.has(hashQuestion(q.question)));
+      const filtered = r.questions.filter((q: QuizQuestion) => !seenSet.has(hashQuestion(q.question)));
       const qs = (filtered.length >= 3 ? filtered : r.questions) as QuizQuestion[];
       setQuestions(qs);
     } catch (e) {
