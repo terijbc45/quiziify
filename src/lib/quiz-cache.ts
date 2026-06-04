@@ -64,14 +64,14 @@ export function prefetchQuiz(
 ) {
   if (cache.has(cacheKey)) return cache.get(cacheKey)!;
   const p = generateQuestions({ data: params })
-    .then((r) => {
+    .then((r: unknown) => {
       const safe = normalizeQuestionResult(r);
       return {
         error: safe.error,
-        questions: safe.questions.map((q) => ({ ...q, author: null, image_url: null })) as QuizQuestion[],
+        questions: safe.questions.map((q: QuizQuestion) => ({ ...q, author: null, image_url: null })) as QuizQuestion[],
       };
     })
-    .catch((e) => ({ error: e instanceof Error ? e.message : "Failed to generate questions.", questions: [] }));
+    .catch((e: unknown) => ({ error: e instanceof Error ? e.message : "Failed to generate questions.", questions: [] }));
   cache.set(cacheKey, p);
   return p;
 }
@@ -82,14 +82,14 @@ export function prefetchRamailo(
 ) {
   if (cache.has(cacheKey)) return cache.get(cacheKey)!;
   const p = generateRamailoQuestions({ data: params })
-    .then((r) => {
+    .then((r: unknown) => {
       const safe = normalizeQuestionResult(r);
       return {
         error: safe.error,
-        questions: safe.questions.map((q) => ({ ...q, author: null, image_url: q.image_url || null })) as QuizQuestion[],
+        questions: safe.questions.map((q: QuizQuestion) => ({ ...q, author: null, image_url: q.image_url || null })) as QuizQuestion[],
       };
     })
-    .catch((e) => ({ error: e instanceof Error ? e.message : "Failed to generate questions.", questions: [] }));
+    .catch((e: unknown) => ({ error: e instanceof Error ? e.message : "Failed to generate questions.", questions: [] }));
   cache.set(cacheKey, p);
   return p;
 }
