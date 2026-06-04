@@ -31,6 +31,7 @@ const Input = z.object({
   model: z.string().max(80).optional(),
   language: Language.optional(),
 });
+type RamailoInput = z.infer<typeof Input>;
 
 function categoryPrompt(cat: z.infer<typeof Categories>, lang: z.infer<typeof Language>): string {
   switch (cat) {
@@ -62,7 +63,7 @@ DELIBERATELY rotate across these buckets — never two questions from the same b
 
 
 export const generateRamailoQuestions = createServerFn({ method: "POST" })
-  .validator((input: any) => Input.parse(input.data))
+  .inputValidator((input: unknown): RamailoInput => Input.parse(input))
   .handler(async ({ data }) => {
     const key = process.env.LOVABLE_API_KEY;
     if (!key) return { error: "AI not configured", questions: [] as z.infer<typeof Question>[] };

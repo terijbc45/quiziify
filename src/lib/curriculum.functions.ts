@@ -67,9 +67,10 @@ async function aiExtract<T>(systemPrompt: string, userPrompt: string, toolName: 
 // ---------- Subjects ----------
 const SubjectsIn = z.object({ country: z.string().min(2).max(80), grade: z.string().min(1).max(40) });
 type Subject = { name: string; emoji: string; blurb: string };
+type SubjectsInput = z.infer<typeof SubjectsIn>;
 
 export const fetchSubjects = createServerFn({ method: "POST" })
-  .validator((i: any) => SubjectsIn.parse(i.data))
+  .inputValidator((input: unknown): SubjectsInput => SubjectsIn.parse(input))
   .handler(async ({ data }) => {
     const ck = `subjects:${data.country.toLowerCase()}:${data.grade.toLowerCase()}`;
     const cached = await cacheGet<{ subjects: Subject[] }>(ck);
@@ -103,9 +104,10 @@ export const fetchSubjects = createServerFn({ method: "POST" })
 // ---------- Chapters ----------
 const ChaptersIn = SubjectsIn.extend({ subject: z.string().min(1).max(80) });
 type Chapter = { name: string; emoji: string; summary: string };
+type ChaptersInput = z.infer<typeof ChaptersIn>;
 
 export const fetchChapters = createServerFn({ method: "POST" })
-  .validator((i: any) => ChaptersIn.parse(i.data))
+  .inputValidator((input: unknown): ChaptersInput => ChaptersIn.parse(input))
   .handler(async ({ data }) => {
     const ck = `chapters:${data.country.toLowerCase()}:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}`;
     const cached = await cacheGet<{ chapters: Chapter[]; context: string }>(ck);
@@ -144,9 +146,10 @@ const CtxIn = z.object({
   subject: z.string().min(1).max(80),
   chapter: z.string().min(1).max(120).optional(),
 });
+type CurriculumContextInput = z.infer<typeof CtxIn>;
 
 export const fetchCurriculumContext = createServerFn({ method: "POST" })
-  .validator((i: any) => CtxIn.parse(i.data))
+  .inputValidator((input: unknown): CurriculumContextInput => CtxIn.parse(input))
   .handler(async ({ data }) => {
     const q = data.chapter
       ? `Nepal CDC ${data.grade} ${data.subject} chapter "${data.chapter}" key concepts syllabus`

@@ -29,9 +29,10 @@ const Input = z.object({
   subject: z.string().max(80).optional(),
   chapter: z.string().max(120).optional(),
 });
+type GenerateQuestionsInput = z.infer<typeof Input>;
 
 export const generateQuestions = createServerFn({ method: "POST" })
-  .validator((input: any) => Input.parse(input.data))
+  .inputValidator((input: unknown): GenerateQuestionsInput => Input.parse(input))
   .handler(async ({ data }) => {
     const key = process.env.LOVABLE_API_KEY;
     if (!key) return { error: "AI not configured", questions: [] as z.infer<typeof Question>[] };
@@ -140,9 +141,10 @@ const SummaryInput = z.object({
   question: z.string().min(1).max(500),
   correct_answer: z.string().min(1).max(300),
 });
+type SummaryInputValue = z.infer<typeof SummaryInput>;
 
 export const explainQuestion = createServerFn({ method: "POST" })
-  .validator((input: any) => SummaryInput.parse(input.data))
+  .inputValidator((input: unknown): SummaryInputValue => SummaryInput.parse(input))
   .handler(async ({ data }) => {
     const key = process.env.LOVABLE_API_KEY;
     if (!key) return { error: "AI not configured", summary: "" };
