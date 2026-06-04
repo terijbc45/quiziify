@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { fetchLatestSnippets } from "./firecrawl.server";
+import { fetchLatestSnippets } from "../server/firecrawl.server";
 
 const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 

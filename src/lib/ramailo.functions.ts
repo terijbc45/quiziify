@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { fetchLatestSnippets } from "./firecrawl.server";
-import { fetchLogoImage, fetchPlaceImage, fetchFoodAnimalImage } from "./firecrawl-images.server";
+import { fetchLatestSnippets } from "../server/firecrawl.server";
+import { fetchLogoImage, fetchPlaceImage, fetchFoodAnimalImage } from "../server/firecrawl-images.server";
 
 const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
