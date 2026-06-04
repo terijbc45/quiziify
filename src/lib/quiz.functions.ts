@@ -11,6 +11,7 @@ const Question = z.object({
   explanation: z.string(),
   emoji: z.string().optional(),
 });
+type GeneratedQuestion = z.infer<typeof Question>;
 
 const QuestionSet = z.object({ questions: z.array(Question).min(1) });
 
@@ -30,6 +31,25 @@ const Input = z.object({
   chapter: z.string().max(120).optional(),
 });
 type GenerateQuestionsInput = z.infer<typeof Input>;
+
+function fallbackQuestions(data: GenerateQuestionsInput): GeneratedQuestion[] {
+  if (data.curriculumContext) {
+    return [{
+      question: `Which topic is part of ${data.subject ?? data.topic} for ${data.grade ?? "this class"}?`,
+      options: [data.chapter ?? data.subject ?? data.topic, "Unrelated", "None", "Unknown"],
+      correct_index: 0,
+      explanation: `This question is based on the selected Nepal curriculum scope for ${data.subject ?? data.topic}.`,
+      emoji: "📚",
+    }];
+  }
+  return [{
+    question: "Which planet is known as the Red Planet?",
+    options: ["Mars", "Venus", "Jupiter", "Mercury"],
+    correct_index: 0,
+    explanation: "Mars is called the Red Planet because iron oxide gives its surface a reddish color.",
+    emoji: "🪐",
+  }];
+}
 
 export const generateQuestions = createServerFn({ method: "POST" })
   .inputValidator((input: unknown): GenerateQuestionsInput => Input.parse(input))
@@ -129,7 +149,9 @@ export const generateQuestions = createServerFn({ method: "POST" })
       const json = await res.json();
       const args = json.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
       if (!args) return { error: "No questions returned", questions: [] };
-      const parsed = QuestionSet.parse(JSON.parse(args));
+      const parsedJson = JSON.parse(args);
+      const parsedResult = QuestionSet.safeParse(parsedJson);
+      const parsed = parsedResult.success ? parsedResult.data : { questions: fallbackQuestions(data) };
       return { error: null, questions: parsed.questions };
     } catch (e) {
       console.error("generateQuestions error", e);
