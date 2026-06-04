@@ -62,7 +62,7 @@ DELIBERATELY rotate across these buckets — never two questions from the same b
 
 
 export const generateRamailoQuestions = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => Input.parse(input))
+  .validator((input: any) => Input.parse(input.data))
   .handler(async ({ data }) => {
     const key = process.env.LOVABLE_API_KEY;
     if (!key) return { error: "AI not configured", questions: [] as z.infer<typeof Question>[] };

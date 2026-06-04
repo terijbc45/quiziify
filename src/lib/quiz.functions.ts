@@ -31,7 +31,7 @@ const Input = z.object({
 });
 
 export const generateQuestions = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => Input.parse(input))
+  .validator((input: any) => Input.parse(input.data))
   .handler(async ({ data }) => {
     const key = process.env.LOVABLE_API_KEY;
     if (!key) return { error: "AI not configured", questions: [] as z.infer<typeof Question>[] };
@@ -142,7 +142,7 @@ const SummaryInput = z.object({
 });
 
 export const explainQuestion = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => SummaryInput.parse(input))
+  .validator((input: any) => SummaryInput.parse(input.data))
   .handler(async ({ data }) => {
     const key = process.env.LOVABLE_API_KEY;
     if (!key) return { error: "AI not configured", summary: "" };

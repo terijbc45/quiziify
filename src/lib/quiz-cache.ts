@@ -46,15 +46,32 @@ export const SECONDARY_MODEL = "google/gemini-2.5-flash-lite";
 // In-memory cache of pre-generated quiz sets keyed by cache key.
 const cache = new Map<string, Promise<{ error: string | null; questions: QuizQuestion[] }>>();
 
+function normalizeQuestionResult(result: unknown): { error: string | null; questions: QuizQuestion[] } {
+  if (!result || typeof result !== "object") {
+    return { error: "Question generator did not return a response.", questions: [] };
+  }
+
+  const value = result as { error?: string | null; questions?: unknown };
+  return {
+    error: value.error ?? null,
+    questions: Array.isArray(value.questions) ? value.questions as QuizQuestion[] : [],
+  };
+}
+
 export function prefetchQuiz(
   cacheKey: string,
   params: { topic: string; difficulty: "easy" | "intermediate" | "hard"; count: number; level?: number; avoid?: string[]; nonce?: string; includeLatest?: boolean; model?: string; curriculumContext?: string; country?: string; grade?: string; subject?: string; chapter?: string },
 ) {
   if (cache.has(cacheKey)) return cache.get(cacheKey)!;
-  const p = generateQuestions({ data: params }).then((r) => ({
-    error: r.error,
-    questions: r.questions.map((q) => ({ ...q, author: null, image_url: null })) as QuizQuestion[],
-  }));
+  const p = generateQuestions({ data: params })
+    .then((r) => {
+      const safe = normalizeQuestionResult(r);
+      return {
+        error: safe.error,
+        questions: safe.questions.map((q) => ({ ...q, author: null, image_url: null })) as QuizQuestion[],
+      };
+    })
+    .catch((e) => ({ error: e instanceof Error ? e.message : "Failed to generate questions.", questions: [] }));
   cache.set(cacheKey, p);
   return p;
 }
@@ -64,10 +81,15 @@ export function prefetchRamailo(
   params: { count: number; avoid?: string[]; nonce?: string; includeLatest?: boolean; category?: "random" | "logo" | "places" | "food_animals"; model?: string; language?: "en" | "ne" },
 ) {
   if (cache.has(cacheKey)) return cache.get(cacheKey)!;
-  const p = generateRamailoQuestions({ data: params }).then((r) => ({
-    error: r.error,
-    questions: r.questions.map((q) => ({ ...q, author: null, image_url: q.image_url || null })) as QuizQuestion[],
-  }));
+  const p = generateRamailoQuestions({ data: params })
+    .then((r) => {
+      const safe = normalizeQuestionResult(r);
+      return {
+        error: safe.error,
+        questions: safe.questions.map((q) => ({ ...q, author: null, image_url: q.image_url || null })) as QuizQuestion[],
+      };
+    })
+    .catch((e) => ({ error: e instanceof Error ? e.message : "Failed to generate questions.", questions: [] }));
   cache.set(cacheKey, p);
   return p;
 }

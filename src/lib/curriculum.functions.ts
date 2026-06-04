@@ -69,7 +69,7 @@ const SubjectsIn = z.object({ country: z.string().min(2).max(80), grade: z.strin
 type Subject = { name: string; emoji: string; blurb: string };
 
 export const fetchSubjects = createServerFn({ method: "POST" })
-  .inputValidator((i: unknown) => SubjectsIn.parse(i))
+  .validator((i: any) => SubjectsIn.parse(i.data))
   .handler(async ({ data }) => {
     const ck = `subjects:${data.country.toLowerCase()}:${data.grade.toLowerCase()}`;
     const cached = await cacheGet<{ subjects: Subject[] }>(ck);
@@ -105,7 +105,7 @@ const ChaptersIn = SubjectsIn.extend({ subject: z.string().min(1).max(80) });
 type Chapter = { name: string; emoji: string; summary: string };
 
 export const fetchChapters = createServerFn({ method: "POST" })
-  .inputValidator((i: unknown) => ChaptersIn.parse(i))
+  .validator((i: any) => ChaptersIn.parse(i.data))
   .handler(async ({ data }) => {
     const ck = `chapters:${data.country.toLowerCase()}:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}`;
     const cached = await cacheGet<{ chapters: Chapter[]; context: string }>(ck);
@@ -146,7 +146,7 @@ const CtxIn = z.object({
 });
 
 export const fetchCurriculumContext = createServerFn({ method: "POST" })
-  .inputValidator((i: unknown) => CtxIn.parse(i))
+  .validator((i: any) => CtxIn.parse(i.data))
   .handler(async ({ data }) => {
     const q = data.chapter
       ? `Nepal CDC ${data.grade} ${data.subject} chapter "${data.chapter}" key concepts syllabus`
