@@ -9,7 +9,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useProfile } from "@/hooks/useProfile";
 import { ArrowLeft, ArrowRight, Sparkles, BookOpen } from "lucide-react";
 import { consumeCachedQuiz, fetchSeenQuestions, hashQuestion, prefetchQuiz, recordSeen, PRIMARY_MODEL, SECONDARY_MODEL } from "@/lib/quiz-cache";
-import { fetchSubjects, fetchCurriculumContext } from "@/server/curriculum.functions";
+import { fetchSubjects, fetchCurriculumContext } from "@/lib/curriculum.functions";
 import { countryByCode, gradeLabel } from "@/lib/locale-options";
 
 export const Route = createFileRoute("/random")({ component: () => <AppShell><Random /></AppShell> });

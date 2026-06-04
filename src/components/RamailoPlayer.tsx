@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { createPortal } from "react-dom";
 import type { QuizQuestion } from "@/components/QuizPlayer";
 import { BrainLoader } from "@/components/BrainLoader";
-import { explainQuestion } from "@/server/quiz.functions";
+import { explainQuestion } from "@/lib/quiz.functions";
 
 const BG_GRADIENTS = [
   "from-pink-400 via-rose-400 to-orange-400",
