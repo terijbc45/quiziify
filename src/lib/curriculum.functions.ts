@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
+import { fetchSubjectImage, fetchChapterImage } from "../server/firecrawl-images.server";
 
 const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
@@ -14,7 +15,6 @@ async function cacheGet<T = unknown>(key: string): Promise<T | null> {
   try {
     const { data } = await admin().from("curriculum_cache").select("payload,fetched_at").eq("key", key).maybeSingle();
     if (!data) return null;
-    // 30-day TTL
     const age = Date.now() - new Date(data.fetched_at).getTime();
     if (age > 1000 * 60 * 60 * 24 * 30) return null;
     return data.payload as T;
@@ -28,17 +28,16 @@ async function firecrawlContext(query: string): Promise<string> {
   const key = process.env.FIRECRAWL_API_KEY;
   if (!key) return "";
   try {
-    // Bias toward Nepal Curriculum Development Centre + official .gov.np / .edu.np sources.
-    const nepalQuery = `${query} site:cdc.gov.np OR site:moecdc.gov.np OR site:moest.gov.np OR site:edusanjal.com OR Nepal CDC Curriculum Development Centre`;
+    const nepalQuery = `${query} site:cdc.gov.np OR site:moecdc.gov.np OR site:neb.gov.np OR site:moest.gov.np OR site:edusanjal.com Nepal CDC Curriculum Development Centre NEB`;
     const res = await fetch("https://api.firecrawl.dev/v2/search", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ query: nepalQuery, limit: 5, scrapeOptions: { formats: ["markdown"] } }),
+      body: JSON.stringify({ query: nepalQuery, limit: 6, scrapeOptions: { formats: ["markdown"] } }),
     });
     if (!res.ok) return "";
     const json = await res.json();
     const items = json?.data?.web ?? json?.data ?? [];
-    return items.slice(0, 5).map((i: any) => `- ${i.title ?? ""}: ${(i.markdown ?? i.description ?? "").slice(0, 800)}`).join("\n");
+    return items.slice(0, 6).map((i: any) => `- ${i.title ?? ""}: ${(i.markdown ?? i.description ?? "").slice(0, 1200)}`).join("\n");
   } catch { return ""; }
 }
 
@@ -51,7 +50,7 @@ async function aiExtract<T>(systemPrompt: string, userPrompt: string, toolName: 
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
-        temperature: 0.4,
+        temperature: 0.3,
         messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }],
         tools: [{ type: "function", function: { name: toolName, parameters: schema } }],
         tool_choice: { type: "function", function: { name: toolName } },
@@ -66,26 +65,26 @@ async function aiExtract<T>(systemPrompt: string, userPrompt: string, toolName: 
 
 // ---------- Subjects ----------
 const SubjectsIn = z.object({ country: z.string().min(2).max(80), grade: z.string().min(1).max(40) });
-type Subject = { name: string; emoji: string; blurb: string };
+type Subject = { name: string; emoji: string; blurb: string; image_url?: string | null };
 type SubjectsInput = z.infer<typeof SubjectsIn>;
 
 export const fetchSubjects = createServerFn({ method: "POST" })
   .inputValidator((input: unknown): SubjectsInput => SubjectsIn.parse(input))
   .handler(async ({ data }) => {
-    const ck = `subjects:${data.country.toLowerCase()}:${data.grade.toLowerCase()}`;
+    const ck = `subjects:v2:${data.country.toLowerCase()}:${data.grade.toLowerCase()}`;
     const cached = await cacheGet<{ subjects: Subject[] }>(ck);
     if (cached?.subjects?.length) return { subjects: cached.subjects };
 
-    const ctx = await firecrawlContext(`Nepal ${data.grade} school subjects CDC curriculum syllabus`);
+    const ctx = await firecrawlContext(`Nepal ${data.grade} school subjects CDC curriculum syllabus NEB`);
     const out = await aiExtract<{ subjects: Subject[] }>(
-      `You list the OFFICIAL school subjects studied in NEPAL for the given grade according to the Curriculum Development Centre (CDC, Sanothimi Bhaktapur) — Nepal's government curriculum authority. Output 6-10 subjects, each with a single emoji and a short 1-line blurb. Use the provided real web context (Nepal CDC / government sources) as ground truth.${ctx ? `\n\nWEB CONTEXT:\n${ctx}` : ""}`,
-      `Country: Nepal\nGrade/Class: ${data.grade}\nList the standard CDC Nepal subjects.`,
+      `You list the OFFICIAL school subjects studied in NEPAL for the given grade according to the Nepal Curriculum Development Centre (CDC, Sanothimi Bhaktapur) and the National Examinations Board (NEB, for class 11-12). For class 8 you must use CDC's Basic Education curriculum; for class 9-10 the Secondary Education Curriculum (SEE); for class 11-12 the NEB curriculum (typically a faculty choice such as Science / Management / Humanities — list the COMMON COMPULSORY subjects PLUS the most popular optional faculty groupings). Output the COMPLETE genuine list — do not invent or omit. Each subject has a single emoji and a one-line blurb. Use the provided web context (Nepal CDC / NEB / edusanjal) as ground truth.${ctx ? `\n\nWEB CONTEXT:\n${ctx}` : ""}`,
+      `Country: Nepal\nGrade/Class: ${data.grade}\nList every standard CDC / NEB subject for this class — compulsory and the common optional groupings.`,
       "submit_subjects",
       {
         type: "object",
         properties: {
           subjects: {
-            type: "array", minItems: 4, maxItems: 12,
+            type: "array", minItems: 5, maxItems: 16,
             items: {
               type: "object",
               properties: { name: { type: "string" }, emoji: { type: "string" }, blurb: { type: "string" } },
@@ -97,32 +96,39 @@ export const fetchSubjects = createServerFn({ method: "POST" })
       },
     );
     if (!out?.subjects?.length) return { subjects: [] as Subject[] };
-    await cacheSet(ck, out);
-    return out;
+
+    // Enrich with real images via Firecrawl.
+    const enriched = await Promise.all(out.subjects.map(async (s) => ({
+      ...s,
+      image_url: await fetchSubjectImage(s.name, data.grade).catch(() => null),
+    })));
+    const payload = { subjects: enriched };
+    await cacheSet(ck, payload);
+    return payload;
   });
 
 // ---------- Chapters ----------
 const ChaptersIn = SubjectsIn.extend({ subject: z.string().min(1).max(80) });
-type Chapter = { name: string; emoji: string; summary: string };
+type Chapter = { name: string; emoji: string; summary: string; image_url?: string | null };
 type ChaptersInput = z.infer<typeof ChaptersIn>;
 
 export const fetchChapters = createServerFn({ method: "POST" })
   .inputValidator((input: unknown): ChaptersInput => ChaptersIn.parse(input))
   .handler(async ({ data }) => {
-    const ck = `chapters:${data.country.toLowerCase()}:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}`;
+    const ck = `chapters:v2:${data.country.toLowerCase()}:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}`;
     const cached = await cacheGet<{ chapters: Chapter[]; context: string }>(ck);
     if (cached?.chapters?.length) return cached;
 
-    const ctx = await firecrawlContext(`Nepal ${data.grade} ${data.subject} chapters syllabus index CDC`);
+    const ctx = await firecrawlContext(`Nepal ${data.grade} ${data.subject} chapters table of contents syllabus CDC NEB`);
     const out = await aiExtract<{ chapters: Chapter[] }>(
-      `You list the OFFICIAL chapter/unit names of the given subject for the given grade in NEPAL, in textbook order, based on the current Nepal Curriculum Development Centre (CDC) syllabus. Output 6-15 chapters. Each has a single emoji + 1-line summary. Use the provided web context (Nepal CDC / government sources) as ground truth.${ctx ? `\n\nWEB CONTEXT:\n${ctx}` : ""}`,
-      `Country: Nepal\nGrade: ${data.grade}\nSubject: ${data.subject}\nList chapters in textbook order according to Nepal CDC.`,
+      `You list the COMPLETE OFFICIAL chapter / unit names of the given subject for the given grade in NEPAL, in textbook order, based on the current Nepal Curriculum Development Centre (CDC) syllabus (class 8-10) or NEB syllabus (class 11-12). Output EVERY chapter — match the real textbook's count exactly (do NOT cap at 10; many NEB books have 12-20 units). Each chapter has a single emoji and a one-line summary. Use the provided web context (Nepal CDC / NEB / edusanjal) as ground truth.${ctx ? `\n\nWEB CONTEXT:\n${ctx}` : ""}`,
+      `Country: Nepal\nGrade: ${data.grade}\nSubject: ${data.subject}\nList every chapter in textbook order, in full.`,
       "submit_chapters",
       {
         type: "object",
         properties: {
           chapters: {
-            type: "array", minItems: 4, maxItems: 20,
+            type: "array", minItems: 4, maxItems: 30,
             items: {
               type: "object",
               properties: { name: { type: "string" }, emoji: { type: "string" }, summary: { type: "string" } },
@@ -134,12 +140,17 @@ export const fetchChapters = createServerFn({ method: "POST" })
       },
     );
     if (!out?.chapters?.length) return { chapters: [] as Chapter[], context: "" };
-    const payload = { chapters: out.chapters, context: ctx.slice(0, 2000) };
+
+    const enriched = await Promise.all(out.chapters.map(async (c) => ({
+      ...c,
+      image_url: await fetchChapterImage(data.subject, c.name).catch(() => null),
+    })));
+    const payload = { chapters: enriched, context: ctx.slice(0, 2500) };
     await cacheSet(ck, payload);
     return payload;
   });
 
-// ---------- Curriculum context fetcher (used to ground quiz questions) ----------
+// ---------- Curriculum context (used to ground quiz questions) ----------
 const CtxIn = z.object({
   country: z.string().min(2).max(80),
   grade: z.string().min(1).max(40),
@@ -152,8 +163,8 @@ export const fetchCurriculumContext = createServerFn({ method: "POST" })
   .inputValidator((input: unknown): CurriculumContextInput => CtxIn.parse(input))
   .handler(async ({ data }) => {
     const q = data.chapter
-      ? `Nepal CDC ${data.grade} ${data.subject} chapter "${data.chapter}" key concepts syllabus`
-      : `Nepal CDC ${data.grade} ${data.subject} curriculum key topics syllabus`;
+      ? `Nepal CDC NEB ${data.grade} ${data.subject} chapter "${data.chapter}" key concepts syllabus`
+      : `Nepal CDC NEB ${data.grade} ${data.subject} curriculum key topics syllabus`;
     const ctx = await firecrawlContext(q);
     return { context: ctx.slice(0, 2500) };
   });
