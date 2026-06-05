@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { Shuffle, BookOpen, ArrowLeft, Newspaper, Smile } from "lucide-react";
+import { Shuffle, BookOpen, ArrowLeft, Newspaper, Smile, Timer } from "lucide-react";
 
 export const Route = createFileRoute("/play")({
   component: () => (
