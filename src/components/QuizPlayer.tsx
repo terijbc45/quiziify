@@ -34,6 +34,8 @@ export function QuizPlayer({
   title,
   onFinish,
   onRetry,
+  hideDeepDive = false,
+  timerSeconds,
 }: {
   loading: boolean;
   error: string | null;
@@ -41,6 +43,8 @@ export function QuizPlayer({
   title: string;
   onFinish: (score: number) => void;
   onRetry: () => void;
+  hideDeepDive?: boolean;
+  timerSeconds?: number;
 }) {
   const [idx, setIdx] = useState(0);
   const [picked, setPicked] = useState<number | null>(null);
@@ -49,8 +53,18 @@ export function QuizPlayer({
   const [moreOpen, setMoreOpen] = useState(false);
   const [summary, setSummary] = useState("");
   const [summaryLoading, setSummaryLoading] = useState(false);
+  const [remaining, setRemaining] = useState<number | null>(timerSeconds ?? null);
 
-  useEffect(() => { setIdx(0); setPicked(null); setScore(0); setDone(false); }, [questions]);
+  useEffect(() => { setIdx(0); setPicked(null); setScore(0); setDone(false); setRemaining(timerSeconds ?? null); }, [questions, timerSeconds]);
+
+  // Countdown timer — auto-finish at 0
+  useEffect(() => {
+    if (remaining === null || done || questions.length === 0) return;
+    if (remaining <= 0) { setDone(true); return; }
+    const id = window.setTimeout(() => setRemaining((r) => (r === null ? null : r - 1)), 1000);
+    return () => window.clearTimeout(id);
+  }, [remaining, done, questions.length]);
+
 
   // Lock body scroll while the Deep Dive overlay is open so only the overlay scrolls
   useEffect(() => {
