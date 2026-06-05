@@ -33,9 +33,9 @@ function Play() {
         />
         <ModeCard
           to="/random"
-          title="Random"
-          desc="Curriculum subjects, mixed questions. Tap and play."
-          icon={<Shuffle className="h-7 w-7" />}
+          title="Test"
+          desc="Timed 100-Q practice test. Pick subject, chapter range & difficulty."
+          icon={<Timer className="h-7 w-7" />}
           gradient="from-pink-500 to-orange-400"
         />
         <ModeCard
