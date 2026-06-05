@@ -15,19 +15,9 @@ import { countryByCode, gradeLabel } from "@/lib/locale-options";
 
 export const Route = createFileRoute("/chapters")({ component: () => <AppShell><Chapters /></AppShell> });
 
-type Subject = { name: string; emoji: string; blurb: string };
-type Chapter = { name: string; emoji: string; summary: string };
+type Subject = { name: string; emoji: string; blurb: string; image_url?: string | null };
+type Chapter = { name: string; emoji: string; summary: string; image_url?: string | null };
 
-const SUBJECT_GRADIENTS = [
-  "from-pink-500 to-rose-500",
-  "from-violet-500 to-fuchsia-500",
-  "from-blue-500 to-cyan-500",
-  "from-emerald-500 to-teal-500",
-  "from-amber-500 to-orange-500",
-  "from-indigo-500 to-purple-500",
-  "from-red-500 to-pink-500",
-  "from-lime-500 to-green-500",
-];
 
 function Chapters() {
   const { user } = useAuth();
