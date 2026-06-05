@@ -34,6 +34,8 @@ export function QuizPlayer({
   title,
   onFinish,
   onRetry,
+  hideDeepDive = false,
+  timerSeconds,
 }: {
   loading: boolean;
   error: string | null;
@@ -41,6 +43,8 @@ export function QuizPlayer({
   title: string;
   onFinish: (score: number) => void;
   onRetry: () => void;
+  hideDeepDive?: boolean;
+  timerSeconds?: number;
 }) {
   const [idx, setIdx] = useState(0);
   const [picked, setPicked] = useState<number | null>(null);
@@ -49,8 +53,18 @@ export function QuizPlayer({
   const [moreOpen, setMoreOpen] = useState(false);
   const [summary, setSummary] = useState("");
   const [summaryLoading, setSummaryLoading] = useState(false);
+  const [remaining, setRemaining] = useState<number | null>(timerSeconds ?? null);
 
-  useEffect(() => { setIdx(0); setPicked(null); setScore(0); setDone(false); }, [questions]);
+  useEffect(() => { setIdx(0); setPicked(null); setScore(0); setDone(false); setRemaining(timerSeconds ?? null); }, [questions, timerSeconds]);
+
+  // Countdown timer — auto-finish at 0
+  useEffect(() => {
+    if (remaining === null || done || questions.length === 0) return;
+    if (remaining <= 0) { setDone(true); return; }
+    const id = window.setTimeout(() => setRemaining((r) => (r === null ? null : r - 1)), 1000);
+    return () => window.clearTimeout(id);
+  }, [remaining, done, questions.length]);
+
 
   // Lock body scroll while the Deep Dive overlay is open so only the overlay scrolls
   useEffect(() => {
@@ -108,24 +122,38 @@ export function QuizPlayer({
     setSummaryLoading(false);
   };
 
+  const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
   return (
     <div className="space-y-6 animate-slide-in">
-      {/* Floating More button — sits directly under the profile avatar in the header */}
-      <button
-        onClick={openMore}
-        className="fixed top-[64px] right-5 z-30 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary text-primary-foreground hover:opacity-90 text-[11px] font-bold shadow-glow"
-        aria-label="More info"
-      >
-        <Sparkles className="h-3.5 w-3.5" /> More
-      </button>
+      {!hideDeepDive && (
+        <button
+          onClick={openMore}
+          className="fixed top-[64px] right-5 z-30 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary text-primary-foreground hover:opacity-90 text-[11px] font-bold shadow-glow"
+          aria-label="More info"
+        >
+          <Sparkles className="h-3.5 w-3.5" /> More
+        </button>
+      )}
 
       <div>
         <div className="flex items-center justify-between mb-2 text-sm gap-2">
           <span className="font-semibold text-primary truncate">{title}</span>
-          <span className="text-muted-foreground flex-shrink-0">{idx + 1} / {questions.length}</span>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {remaining !== null && (
+              <span className={cn(
+                "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold tabular-nums",
+                remaining <= 30 ? "bg-destructive/15 text-destructive" : "bg-muted text-foreground",
+              )}>
+                ⏱ {fmt(remaining)}
+              </span>
+            )}
+            <span className="text-muted-foreground">{idx + 1} / {questions.length}</span>
+          </div>
         </div>
         <Progress value={((idx + (answered ? 1 : 0)) / questions.length) * 100} className="h-2" />
       </div>
+
 
       <div className="rounded-3xl bg-card shadow-card border border-border overflow-hidden">
         {/* Visual header — vibrant gradient with decorative shapes */}

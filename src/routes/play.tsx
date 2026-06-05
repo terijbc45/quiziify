@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { Shuffle, BookOpen, ArrowLeft, Newspaper, Smile } from "lucide-react";
+import { BookOpen, ArrowLeft, Newspaper, Smile, Timer } from "lucide-react";
 
 export const Route = createFileRoute("/play")({
   component: () => (
@@ -33,9 +33,9 @@ function Play() {
         />
         <ModeCard
           to="/random"
-          title="Random"
-          desc="Curriculum subjects, mixed questions. Tap and play."
-          icon={<Shuffle className="h-7 w-7" />}
+          title="Test"
+          desc="Timed 100-Q practice test. Pick subject, chapter range & difficulty."
+          icon={<Timer className="h-7 w-7" />}
           gradient="from-pink-500 to-orange-400"
         />
         <ModeCard

@@ -15,19 +15,9 @@ import { countryByCode, gradeLabel } from "@/lib/locale-options";
 
 export const Route = createFileRoute("/chapters")({ component: () => <AppShell><Chapters /></AppShell> });
 
-type Subject = { name: string; emoji: string; blurb: string };
-type Chapter = { name: string; emoji: string; summary: string };
+type Subject = { name: string; emoji: string; blurb: string; image_url?: string | null };
+type Chapter = { name: string; emoji: string; summary: string; image_url?: string | null };
 
-const SUBJECT_GRADIENTS = [
-  "from-pink-500 to-rose-500",
-  "from-violet-500 to-fuchsia-500",
-  "from-blue-500 to-cyan-500",
-  "from-emerald-500 to-teal-500",
-  "from-amber-500 to-orange-500",
-  "from-indigo-500 to-purple-500",
-  "from-red-500 to-pink-500",
-  "from-lime-500 to-green-500",
-];
 
 function Chapters() {
   const { user } = useAuth();
@@ -247,33 +237,38 @@ function Chapters() {
             <p className="text-muted-foreground">No chapters available right now.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {chapters.map((c, i) => {
               const done = progress.has(`${subject}::${c.name}`);
               return (
                 <button
                   key={c.name}
                   onClick={() => startChapter(c.name)}
-                  className={`group relative rounded-2xl p-4 text-left border-2 transition-all hover:-translate-y-0.5 animate-fade-in ${
-                    done ? "border-success/40 bg-success/5" : "border-border bg-card hover:border-primary"
+                  className={`group relative rounded-2xl bg-white border-2 transition-all hover:-translate-y-0.5 overflow-hidden text-left animate-fade-in ${
+                    done ? "border-success/60" : "border-border hover:border-primary"
                   }`}
-                  style={{ animationDelay: `${i * 30}ms` }}
+                  style={{ animationDelay: `${i * 25}ms` }}
                 >
-                  <div className="flex items-start gap-3">
-                    <div className="text-3xl">{c.emoji}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-semibold text-muted-foreground">Ch. {i + 1}</span>
-                        {done && <Check className="h-3.5 w-3.5 text-success" />}
-                      </div>
-                      <h3 className="font-bold leading-tight">{c.name}</h3>
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{c.summary}</p>
+                  <div className="aspect-[4/3] bg-muted overflow-hidden">
+                    {c.image_url ? (
+                      <img src={c.image_url} alt="" loading="lazy"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-5xl">{c.emoji}</div>
+                    )}
+                  </div>
+                  <div className="p-3">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Ch. {i + 1}</span>
+                      {done && <Check className="h-3.5 w-3.5 text-success" />}
                     </div>
+                    <h3 className="font-semibold text-sm leading-tight mt-0.5 text-foreground line-clamp-2">{c.name}</h3>
                   </div>
                 </button>
               );
             })}
           </div>
+
         )}
       </div>
     );
@@ -315,15 +310,24 @@ function Chapters() {
             <button
               key={s.name}
               onClick={() => setSubject(s.name)}
-              className={`group rounded-3xl p-5 text-left text-white bg-gradient-to-br ${SUBJECT_GRADIENTS[i % SUBJECT_GRADIENTS.length]} shadow-card hover:shadow-glow hover:-translate-y-1 transition-all animate-fade-in`}
+              className="group rounded-2xl bg-white border-2 border-border hover:border-primary shadow-card hover:shadow-glow hover:-translate-y-1 transition-all animate-fade-in overflow-hidden text-left"
               style={{ animationDelay: `${i * 40}ms` }}
             >
-              <div className="text-4xl mb-2 group-hover:scale-110 transition-transform">{s.emoji}</div>
-              <h3 className="font-bold text-lg leading-tight">{s.name}</h3>
-              <p className="text-white/85 text-xs mt-1 line-clamp-2">{s.blurb}</p>
+              <div className="aspect-square bg-muted overflow-hidden">
+                {s.image_url ? (
+                  <img src={s.image_url} alt="" loading="lazy"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-6xl">{s.emoji}</div>
+                )}
+              </div>
+              <div className="p-3">
+                <h3 className="font-semibold text-foreground text-center leading-tight">{s.name}</h3>
+              </div>
             </button>
           ))}
         </div>
+
       )}
     </div>
   );

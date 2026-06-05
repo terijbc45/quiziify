@@ -6,7 +6,7 @@ import { RamailoPlayer } from "@/components/RamailoPlayer";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { ArrowLeft, Sparkles, Globe2, Pizza, Building2, Shuffle, Languages } from "lucide-react";
+import { ArrowLeft, Sparkles, Globe2, Pizza, Building2, BookMarked, Languages } from "lucide-react";
 import { fetchSeenQuestions, hashQuestion, recordSeen, consumeCachedQuiz, prefetchRamailo, PRIMARY_MODEL, SECONDARY_MODEL } from "@/lib/quiz-cache";
 import { cn } from "@/lib/utils";
 
@@ -16,7 +16,7 @@ type Cat = "random" | "logo" | "places" | "food_animals";
 type Lang = "en" | "ne";
 
 const CATEGORIES: Array<{ id: Cat; label: string; emoji: string; icon: typeof Globe2; gradient: string; desc: string }> = [
-  { id: "random", label: "Random", emoji: "🎲", icon: Shuffle, gradient: "from-violet-500 to-fuchsia-500", desc: "Lok Sewa style GK (Nepal & world)" },
+  { id: "random", label: "G.K", emoji: "📚", icon: BookMarked, gradient: "from-violet-500 to-fuchsia-500", desc: "Lok Sewa Aayog style general knowledge" },
   { id: "logo", label: "Logo", emoji: "🏷️", icon: Building2, gradient: "from-sky-500 to-cyan-500", desc: "Guess the brand from its logo" },
   { id: "places", label: "Places", emoji: "🌍", icon: Globe2, gradient: "from-emerald-500 to-teal-500", desc: "Flags, monuments & famous spots" },
   { id: "food_animals", label: "Foods & Animals", emoji: "🍕", icon: Pizza, gradient: "from-amber-500 to-orange-500", desc: "Tasty bites and wild creatures" },

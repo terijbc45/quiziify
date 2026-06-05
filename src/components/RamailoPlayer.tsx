@@ -17,12 +17,8 @@ const BG_GRADIENTS = [
   "from-indigo-500 via-blue-500 to-cyan-400",
 ];
 
-const OPTION_COLORS = [
-  "from-rose-500 to-pink-500",
-  "from-amber-500 to-orange-500",
-  "from-emerald-500 to-teal-500",
-  "from-violet-500 to-indigo-500",
-];
+// Options now mirror Chapters mode: white background, green tint on correct, red tint on incorrect.
+
 
 /**
  * Playful, animated quiz player for Ramailo mode.
@@ -171,12 +167,11 @@ export function RamailoPlayer({
         </div>
       </div>
 
-      {/* Option bubbles */}
+      {/* Option bubbles — white background with green/red feedback (matches Chapters mode) */}
       <div className="grid grid-cols-2 gap-3">
         {q.options.map((opt, i) => {
           const isCorrect = i === q.correct_index;
           const isPicked = i === picked;
-          const color = OPTION_COLORS[i % OPTION_COLORS.length];
           return (
             <button
               key={i}
@@ -191,27 +186,21 @@ export function RamailoPlayer({
                 }
               }}
               className={cn(
-                "group relative h-20 sm:h-24 rounded-2xl px-3 py-2 font-extrabold text-base sm:text-lg transition-all overflow-hidden border-2",
-                !answered && `bg-gradient-to-br ${color} text-white border-white/20 shadow-card hover:scale-[1.04] active:scale-95 hover:shadow-glow`,
-                answered && isCorrect && "bg-success text-white border-success scale-[1.02]",
-                answered && isPicked && !isCorrect && "bg-destructive/90 text-white border-destructive",
-                answered && !isPicked && !isCorrect && "bg-muted text-muted-foreground border-border opacity-50",
+                "relative min-h-[72px] px-3 py-2 rounded-2xl border-2 font-semibold text-sm sm:text-base transition-all flex items-center justify-center text-center",
+                !answered && "bg-white border-border hover:border-primary hover:bg-primary/5 hover:scale-[1.03] active:scale-95 text-foreground",
+                answered && isCorrect && "border-success bg-success/15 text-success-foreground scale-[1.02]",
+                answered && isPicked && !isCorrect && "border-destructive bg-destructive/15 text-foreground",
+                answered && !isPicked && !isCorrect && "border-border bg-white opacity-50 text-foreground",
               )}
             >
               <span className="relative z-10 line-clamp-2 leading-tight">{opt}</span>
-              {answered && isCorrect && (
-                <Check className="absolute top-1.5 right-1.5 h-5 w-5 z-10" />
-              )}
-              {answered && isPicked && !isCorrect && (
-                <X className="absolute top-1.5 right-1.5 h-5 w-5 z-10" />
-              )}
-              {!answered && (
-                <span className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-colors" />
-              )}
+              {answered && isCorrect && <Check className="absolute top-1.5 right-1.5 h-4 w-4 text-success" />}
+              {answered && isPicked && !isCorrect && <X className="absolute top-1.5 right-1.5 h-4 w-4 text-destructive" />}
             </button>
           );
         })}
       </div>
+
 
       {answered && (
         <div className={cn(

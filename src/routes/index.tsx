@@ -1,10 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { TrendingUp, Trophy, Play, CalendarDays, Pencil, MessageCircle } from "lucide-react";
+import { TrendingUp, Trophy, Play, CalendarDays, Pencil, BookOpen } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from "recharts";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -22,11 +22,18 @@ function Index() {
   );
 }
 
+type ChapterProgressRow = {
+  subject: string;
+  chapter: string;
+  best_score: number;
+  completed_at: string;
+};
+
 function Home() {
   const { user } = useAuth();
   const [progress, setProgress] = useState<{ current_level: number; total_score: number } | null>(null);
   const [name, setName] = useState("");
-  const [chart, setChart] = useState<{ level: number; score: number; date: string }[]>([]);
+  const [chapterProgress, setChapterProgress] = useState<ChapterProgressRow[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -34,10 +41,12 @@ function Home() {
       .then(({ data }) => setProgress(data));
     supabase.from("profiles").select("display_name").eq("id", user.id).maybeSingle()
       .then(({ data }) => setName(data?.display_name ?? ""));
-    supabase.from("quiz_attempts").select("level,score,created_at").eq("user_id", user.id).eq("mode", "level").order("created_at").limit(50)
-      .then(({ data }) => {
-        if (data) setChart(data.map((a) => ({ level: a.level ?? 0, score: a.score, date: format(new Date(a.created_at), "MMM d") })));
-      });
+    supabase.from("chapter_progress")
+      .select("subject,chapter,best_score,completed_at")
+      .eq("user_id", user.id)
+      .order("completed_at", { ascending: false })
+      .limit(100)
+      .then(({ data }) => { if (data) setChapterProgress(data as ChapterProgressRow[]); });
   }, [user]);
 
   return (
@@ -51,6 +60,7 @@ function Home() {
             <>
               <Stat icon={<TrendingUp className="h-4 w-4" />} label="Level" value={progress.current_level} />
               <Stat icon={<Trophy className="h-4 w-4" />} label="Score" value={progress.total_score} />
+              <Stat icon={<BookOpen className="h-4 w-4" />} label="Chapters" value={chapterProgress.length} />
             </>
           )}
           <Link
@@ -62,18 +72,30 @@ function Home() {
         </div>
       </div>
 
-      <ProgressCarousel chart={chart} />
+      <ProgressCarousel rows={chapterProgress} />
     </div>
   );
 }
 
-function ProgressCarousel({ chart }: { chart: { level: number; score: number; date: string }[] }) {
+function ProgressCarousel({ rows }: { rows: ChapterProgressRow[] }) {
   const [slide, setSlide] = useState(0);
   const slides = ["progress", "calendar"] as const;
 
+  // Aggregate per subject: count of chapters mastered + average best score.
+  const subjectStats = useMemo(() => {
+    const map = new Map<string, { subject: string; chapters: number; avgScore: number; sumScore: number }>();
+    for (const r of rows) {
+      const cur = map.get(r.subject) ?? { subject: r.subject, chapters: 0, avgScore: 0, sumScore: 0 };
+      cur.chapters += 1;
+      cur.sumScore += r.best_score;
+      cur.avgScore = Math.round(cur.sumScore / cur.chapters);
+      map.set(r.subject, cur);
+    }
+    return Array.from(map.values()).sort((a, b) => b.chapters - a.chapters).slice(0, 8);
+  }, [rows]);
+
   return (
     <div className="rounded-3xl bg-card p-6 shadow-card border border-border">
-      {/* Carousel dots ABOVE the title */}
       <div className="flex justify-center gap-2 mb-4">
         {slides.map((s, i) => (
           <button
@@ -89,24 +111,33 @@ function ProgressCarousel({ chart }: { chart: { level: number; score: number; da
 
       {slide === 0 ? (
         <>
-          <h2 className="font-bold text-lg flex items-center gap-2 mb-4">
-            <TrendingUp className="h-4 w-4" /> Your progress
+          <h2 className="font-bold text-lg flex items-center gap-2 mb-1">
+            <TrendingUp className="h-4 w-4" /> Chapter mastery
           </h2>
-          {chart.length === 0 ? (
+          <p className="text-xs text-muted-foreground mb-4">
+            Bars show chapters completed per subject — taller means more chapters mastered.
+          </p>
+          {subjectStats.length === 0 ? (
             <p className="text-muted-foreground text-sm py-8 text-center">
-              Play Level mode to see your progress here.
+              Finish a chapter in <Link to="/chapters" className="text-primary font-semibold">Chapters mode</Link> to see your progress here.
             </p>
           ) : (
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chart}>
+                <BarChart data={subjectStats} margin={{ top: 8, right: 12, left: -10, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.92 0.01 280)" />
-                  <XAxis dataKey="date" stroke="oklch(0.5 0.02 280)" fontSize={12} />
-                  <YAxis stroke="oklch(0.5 0.02 280)" fontSize={12} />
-                  <Tooltip contentStyle={{ borderRadius: 12, border: "none", boxShadow: "var(--shadow-card)" }} />
-                  <Line type="monotone" dataKey="level" stroke="oklch(0.62 0.22 295)" strokeWidth={3} dot={{ r: 4 }} />
-                  <Line type="monotone" dataKey="score" stroke="oklch(0.7 0.18 150)" strokeWidth={3} dot={{ r: 4 }} />
-                </LineChart>
+                  <XAxis dataKey="subject" stroke="oklch(0.5 0.02 280)" fontSize={11} interval={0} angle={-12} textAnchor="end" height={50} />
+                  <YAxis allowDecimals={false} stroke="oklch(0.5 0.02 280)" fontSize={12} />
+                  <Tooltip
+                    contentStyle={{ borderRadius: 12, border: "none", boxShadow: "var(--shadow-card)" }}
+                    formatter={(v: number, n: string) => [v, n === "chapters" ? "Chapters done" : "Avg score"]}
+                  />
+                  <Bar dataKey="chapters" radius={[8, 8, 0, 0]}>
+                    {subjectStats.map((_, i) => (
+                      <Cell key={i} fill={`oklch(0.62 0.22 ${(i * 47) % 360})`} />
+                    ))}
+                  </Bar>
+                </BarChart>
               </ResponsiveContainer>
             </div>
           )}
@@ -126,8 +157,10 @@ function CalendarPanel() {
   const [draft, setDraft] = useState("");
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  // Speech-bubble popup state — shown when tapping a date that already has a caption.
-  const [bubble, setBubble] = useState<{ date: Date; caption: string } | null>(null);
+  // Date key whose tooltip-bubble is currently shown. The bubble is rendered
+  // as a positioned speech-bubble ABOVE the actual date cell (like the screenshot),
+  // not as a separate dialog/below-the-calendar panel.
+  const [bubbleKey, setBubbleKey] = useState<string | null>(null);
 
   const { from, to } = useMemo(() => {
     const f = new Date(month.getFullYear(), month.getMonth(), 1);
@@ -150,22 +183,32 @@ function CalendarPanel() {
       });
   }, [user, from, to]);
 
+  // Close any open bubble when clicking anywhere outside a date cell.
+  useEffect(() => {
+    if (!bubbleKey) return;
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-day-cell]")) setBubbleKey(null);
+    };
+    window.addEventListener("click", handler);
+    return () => window.removeEventListener("click", handler);
+  }, [bubbleKey]);
+
   const key = (d: Date) => format(d, "yyyy-MM-dd");
 
   const openEditor = (d: Date) => {
     setSelected(d);
     setDraft(captions[key(d)] ?? "");
-    setBubble(null);
+    setBubbleKey(null);
     setOpen(true);
   };
 
-  const handleSelect = (d: Date | undefined) => {
-    if (!d) return;
+  const handleDayClick = (d: Date) => {
+    const k = key(d);
     setSelected(d);
-    const existing = captions[key(d)];
+    const existing = captions[k];
     if (existing) {
-      // Show the caption as a speech-bubble popup (like the reference image).
-      setBubble({ date: d, caption: existing });
+      setBubbleKey((cur) => (cur === k ? null : k));
     } else {
       openEditor(d);
     }
@@ -178,7 +221,7 @@ function CalendarPanel() {
     const next = { ...captions };
     delete next[k];
     setCaptions(next);
-    setBubble(null);
+    setBubbleKey(null);
     toast.success("Caption removed");
   };
 
@@ -203,7 +246,6 @@ function CalendarPanel() {
     toast.success("Saved");
   };
 
-
   return (
     <>
       <h2 className="font-bold text-lg flex items-center gap-2 mb-4">
@@ -213,7 +255,7 @@ function CalendarPanel() {
         <Calendar
           mode="single"
           selected={selected}
-          onSelect={handleSelect}
+          onSelect={(d) => d && handleDayClick(d)}
           month={month}
           onMonthChange={setMonth}
           className="pointer-events-auto w-full max-w-[420px] [--cell-size:2.85rem] sm:[--cell-size:3.1rem] text-base"
@@ -221,20 +263,37 @@ function CalendarPanel() {
             DayButton: ({ day, modifiers, ...props }: any) => {
               const k = key(day.date);
               const cap = captions[k];
+              const showBubble = bubbleKey === k && !!cap;
               return (
                 <button
                   {...props}
+                  data-day-cell
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDayClick(day.date);
+                  }}
                   className={`relative aspect-square w-full rounded-xl text-base font-medium transition-all hover:bg-accent hover:scale-105 ${
                     modifiers?.today ? "ring-2 ring-primary/40 font-bold" : ""
                   } ${modifiers?.selected ? "bg-primary text-primary-foreground shadow-md scale-105" : ""}`}
                 >
                   {day.date.getDate()}
-                  {cap && (
+                  {/* small dot to indicate a caption exists */}
+                  {cap && !showBubble && (
+                    <span className="absolute bottom-1 left-1/2 -translate-x-1/2 h-1.5 w-1.5 rounded-full bg-primary" />
+                  )}
+                  {/* Speech bubble — rectangular, rounded, with a downward pointer touching this date */}
+                  {showBubble && (
                     <span
-                      aria-label={`Caption: ${cap}`}
-                      className="absolute -top-2 left-full -translate-x-1 z-10 max-w-[88px] px-1.5 py-0.5 rounded-lg rounded-bl-sm border border-foreground/70 bg-background text-foreground text-[9px] font-semibold leading-tight shadow-sm truncate pointer-events-none"
+                      role="dialog"
+                      onClick={(e) => e.stopPropagation()}
+                      className="absolute left-1/2 -translate-x-1/2 bottom-full mb-3 z-50 w-max max-w-[240px] px-3 py-2 rounded-2xl bg-white border-2 border-foreground text-foreground text-xs font-semibold shadow-glow whitespace-normal text-left animate-scale-in"
                     >
                       {cap}
+                      {/* Pointer touching the date cell */}
+                      <span
+                        aria-hidden
+                        className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 h-3 w-3 rotate-45 bg-white border-b-2 border-r-2 border-foreground"
+                      />
                     </span>
                   )}
                 </button>
@@ -245,8 +304,22 @@ function CalendarPanel() {
       </div>
 
       <p className="text-xs text-muted-foreground text-center mt-3">
-        Tap a date with a caption to see its popup, or tap an empty date to add one.
+        Tap an empty date to add a caption. Tap a captioned date to see its bubble.
       </p>
+
+      {bubbleKey && captions[bubbleKey] && (
+        <div className="mt-3 flex items-center gap-2 justify-center flex-wrap">
+          <Button size="sm" variant="outline" className="rounded-full"
+            onClick={() => selected && openEditor(selected)}>
+            <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
+          </Button>
+          <Button size="sm" variant="outline"
+            className="rounded-full text-destructive border-destructive/40 hover:bg-destructive/10"
+            onClick={() => selected && removeCaption(selected)}>
+            Remove
+          </Button>
+        </div>
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
@@ -259,7 +332,7 @@ function CalendarPanel() {
           <Textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder="Add a caption (optional)…"
+            placeholder="Add a caption (e.g. a person's name)…"
             rows={4}
             maxLength={500}
           />
@@ -269,48 +342,6 @@ function CalendarPanel() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Speech-bubble caption popup — shown when tapping a date that has a caption */}
-      {bubble && (
-        <div
-          className="fixed inset-0 z-[80] bg-background/60 backdrop-blur-md flex items-center justify-center p-6 animate-slide-in"
-          onClick={() => setBubble(null)}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="relative max-w-sm w-full flex flex-col items-center"
-          >
-            <p className="text-white text-xs font-semibold mb-3 px-3 py-1 rounded-full bg-foreground/80 shadow-soft">
-              {format(bubble.date, "PPP")}
-            </p>
-            <div className="relative inline-block w-full">
-              <div className="relative px-5 py-4 rounded-3xl rounded-bl-md border-2 border-foreground bg-background text-foreground text-lg font-semibold shadow-glow break-words text-center animate-scale-in">
-                {bubble.caption}
-                <span
-                  aria-hidden
-                  className="absolute -bottom-2.5 left-6 h-5 w-5 rotate-45 border-b-2 border-r-2 border-foreground bg-background"
-                />
-              </div>
-            </div>
-            <div className="mt-6 flex items-center gap-2 flex-wrap justify-center">
-              <Button size="sm" variant="outline" className="rounded-full" onClick={() => openEditor(bubble.date)}>
-                <Pencil className="h-4 w-4 mr-1" /> Edit
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="rounded-full text-destructive border-destructive/40 hover:bg-destructive/10"
-                onClick={() => removeCaption(bubble.date)}
-              >
-                Remove
-              </Button>
-              <Button size="sm" className="rounded-full bg-gradient-hero" onClick={() => setBubble(null)}>
-                Close
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }

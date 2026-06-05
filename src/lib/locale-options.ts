@@ -1,10 +1,9 @@
 // Quiziify is a Nepal-only app. Country picker is locked to Nepal.
-export const GRADES: { value: string; label: string }[] = [
-  { value: "nursery", label: "Nursery" },
-  { value: "lkg", label: "LKG" },
-  { value: "ukg", label: "UKG" },
-  ...Array.from({ length: 12 }, (_, i) => ({ value: `class_${i + 1}`, label: `Class ${i + 1}` })),
-];
+// Grades are restricted to Class 8 → Class 12 (the CDC/NEB span we support).
+export const GRADES: { value: string; label: string }[] = Array.from(
+  { length: 5 },
+  (_, i) => ({ value: `class_${i + 8}`, label: `Class ${i + 8}` }),
+);
 
 export const COUNTRIES: { code: string; name: string; flag: string }[] = [
   { code: "np", name: "Nepal", flag: "🇳🇵" },
