@@ -88,3 +88,25 @@ export async function fetchFoodAnimalImage(subject: string): Promise<string | nu
   await setCached(cacheKey, url);
   return url;
 }
+
+export async function fetchSubjectImage(subject: string, grade?: string): Promise<string | null> {
+  const cacheKey = `subject:${subject.toLowerCase()}`;
+  const cached = await getCached(cacheKey);
+  if (cached) return cached;
+  const url = await firecrawlImageSearch(`${subject} school subject textbook cover Nepal ${grade ?? ""}`)
+    ?? await firecrawlImageSearch(`${subject} illustration education`);
+  if (!url) return null;
+  await setCached(cacheKey, url);
+  return url;
+}
+
+export async function fetchChapterImage(subject: string, chapter: string): Promise<string | null> {
+  const cacheKey = `chapter:${subject.toLowerCase()}:${chapter.toLowerCase()}`.slice(0, 180);
+  const cached = await getCached(cacheKey);
+  if (cached) return cached;
+  const url = await firecrawlImageSearch(`${chapter} ${subject} concept illustration`)
+    ?? await firecrawlImageSearch(`${chapter} illustration`);
+  if (!url) return null;
+  await setCached(cacheKey, url);
+  return url;
+}
