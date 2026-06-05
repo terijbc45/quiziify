@@ -237,33 +237,38 @@ function Chapters() {
             <p className="text-muted-foreground">No chapters available right now.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {chapters.map((c, i) => {
               const done = progress.has(`${subject}::${c.name}`);
               return (
                 <button
                   key={c.name}
                   onClick={() => startChapter(c.name)}
-                  className={`group relative rounded-2xl p-4 text-left border-2 transition-all hover:-translate-y-0.5 animate-fade-in ${
-                    done ? "border-success/40 bg-success/5" : "border-border bg-card hover:border-primary"
+                  className={`group relative rounded-2xl bg-white border-2 transition-all hover:-translate-y-0.5 overflow-hidden text-left animate-fade-in ${
+                    done ? "border-success/60" : "border-border hover:border-primary"
                   }`}
-                  style={{ animationDelay: `${i * 30}ms` }}
+                  style={{ animationDelay: `${i * 25}ms` }}
                 >
-                  <div className="flex items-start gap-3">
-                    <div className="text-3xl">{c.emoji}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-semibold text-muted-foreground">Ch. {i + 1}</span>
-                        {done && <Check className="h-3.5 w-3.5 text-success" />}
-                      </div>
-                      <h3 className="font-bold leading-tight">{c.name}</h3>
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{c.summary}</p>
+                  <div className="aspect-[4/3] bg-muted overflow-hidden">
+                    {c.image_url ? (
+                      <img src={c.image_url} alt="" loading="lazy"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-5xl">{c.emoji}</div>
+                    )}
+                  </div>
+                  <div className="p-3">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Ch. {i + 1}</span>
+                      {done && <Check className="h-3.5 w-3.5 text-success" />}
                     </div>
+                    <h3 className="font-semibold text-sm leading-tight mt-0.5 text-foreground line-clamp-2">{c.name}</h3>
                   </div>
                 </button>
               );
             })}
           </div>
+
         )}
       </div>
     );
