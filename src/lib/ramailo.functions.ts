@@ -67,13 +67,13 @@ Options must be short (1-3 words). Mix continents. Include at least one Nepal-re
       return `Generate fun trivia mixing famous foods and animals from around the world: dishes, fruits, drinks, mammals, birds, sea creatures, insects. E.g. "Which country is sushi from?", "Fastest land animal?", "What animal is a 'joey'?", "Pizza margherita originated in?". Include at least one Nepali food (momo, dal bhat, sel roti, gundruk, yomari, dhindo) or Nepali wildlife (one-horned rhino, red panda, snow leopard, danphe). Use a vivid emoji per question.`;
     case "random":
     default:
-      return `Generate Nepal Lok Sewa Aayog (Public Service Commission) style general-knowledge MCQs. ${lang === "ne" ? "Write EVERYTHING (question, options, explanation) in Nepali (Devanagari script)." : "Write everything in clear English."} Strictly cover the SAME bucket-set Lok Sewa uses for samanya gyan (general knowledge):
-- Nepal: history (Lichchhavi, Malla, Shah, Rana, Panchayat, 2046 Jana Andolan, 2062/63), geography (provinces, rivers, mountains, districts), constitution & government (current constitution 2072, fundamental rights, federalism), economy & current affairs (recent budget, GDP, exports, latest appointments)
+      return `Generate Nepal LOK SEWA AAYOG (Public Service Commission) style General Knowledge MCQs SOURCED FROM the latest Lok Sewa preparation e-books, model question sets, and past papers (e.g. Pairavi, Buddha, Asmita, Hisi Offset, KEC, Mainali, Subedi guides, "Loksewa Tayari", and PSC Online practice sets). ${lang === "ne" ? "Write EVERYTHING (question, options, explanation) in Nepali (Devanagari script)." : "Write everything in clear English."} STRICTLY cover the samanya-gyan bucket-set Lok Sewa actually tests:
+- Nepal: history (Lichchhavi, Malla, Shah, Rana, Panchayat, 2046 Jana Andolan, 2062/63), geography (provinces, rivers, mountains, districts), constitution & government (current constitution 2072, fundamental rights, federalism, articles), economy & current affairs (recent budget, GDP, exports, latest appointments), public administration, governance
 - Nepali culture, festivals, literature, art, music, national symbols
-- World: geography, history, organizations (UN, SAARC, BRICS, WTO, IMF), capitals, currencies
-- Science (physics, chemistry, biology, IT basics), sports, environment
-- Latest current affairs (last 12 months) Nepal & world
-DELIBERATELY rotate across these buckets — never two questions from the same bucket per batch. Keep difficulty similar to Lok Sewa Aayog samanya gyan / IQ section. Use a vivid emoji per question.`;
+- World: geography, history, organizations (UN, SAARC, BRICS, WTO, IMF, ASEAN), capitals, currencies
+- Science (physics, chemistry, biology, IT basics), mathematics reasoning, sports, environment
+- Latest current affairs (last 12 months) Nepal & world — appointments, awards, sports, treaties
+DELIBERATELY rotate across these buckets — never two questions from the same bucket per batch. Match the Lok Sewa Aayog samanya-gyan / IQ paper difficulty and phrasing. Use a vivid emoji per question.`;
   }
 }
 
