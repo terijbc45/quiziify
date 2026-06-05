@@ -17,12 +17,8 @@ const BG_GRADIENTS = [
   "from-indigo-500 via-blue-500 to-cyan-400",
 ];
 
-const OPTION_COLORS = [
-  "from-rose-500 to-pink-500",
-  "from-amber-500 to-orange-500",
-  "from-emerald-500 to-teal-500",
-  "from-violet-500 to-indigo-500",
-];
+// Options now mirror Chapters mode: white background, green tint on correct, red tint on incorrect.
+
 
 /**
  * Playful, animated quiz player for Ramailo mode.
