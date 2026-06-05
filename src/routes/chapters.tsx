@@ -310,15 +310,24 @@ function Chapters() {
             <button
               key={s.name}
               onClick={() => setSubject(s.name)}
-              className={`group rounded-3xl p-5 text-left text-white bg-gradient-to-br ${SUBJECT_GRADIENTS[i % SUBJECT_GRADIENTS.length]} shadow-card hover:shadow-glow hover:-translate-y-1 transition-all animate-fade-in`}
+              className="group rounded-2xl bg-white border-2 border-border hover:border-primary shadow-card hover:shadow-glow hover:-translate-y-1 transition-all animate-fade-in overflow-hidden text-left"
               style={{ animationDelay: `${i * 40}ms` }}
             >
-              <div className="text-4xl mb-2 group-hover:scale-110 transition-transform">{s.emoji}</div>
-              <h3 className="font-bold text-lg leading-tight">{s.name}</h3>
-              <p className="text-white/85 text-xs mt-1 line-clamp-2">{s.blurb}</p>
+              <div className="aspect-square bg-muted overflow-hidden">
+                {s.image_url ? (
+                  <img src={s.image_url} alt="" loading="lazy"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-6xl">{s.emoji}</div>
+                )}
+              </div>
+              <div className="p-3">
+                <h3 className="font-semibold text-foreground text-center leading-tight">{s.name}</h3>
+              </div>
             </button>
           ))}
         </div>
+
       )}
     </div>
   );
