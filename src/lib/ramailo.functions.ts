@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { fetchLatestSnippets } from "../server/firecrawl.server";
 import { fetchLogoImage, fetchPlaceImage, fetchFoodAnimalImage } from "../server/firecrawl-images.server";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
@@ -78,7 +79,7 @@ DELIBERATELY rotate across these buckets — never two questions from the same b
 }
 
 
-export const generateRamailoQuestions = createServerFn({ method: "POST" })
+export const generateRamailoQuestions = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
   .inputValidator((input: unknown): RamailoInput => Input.parse(input))
   .handler(async ({ data }) => {
     const key = process.env.LOVABLE_API_KEY;

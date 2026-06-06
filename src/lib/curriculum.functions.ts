@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
 import { fetchSubjectImage, fetchChapterImage } from "../server/firecrawl-images.server";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
@@ -68,7 +69,7 @@ const SubjectsIn = z.object({ country: z.string().min(2).max(80), grade: z.strin
 type Subject = { name: string; emoji: string; blurb: string; image_url?: string | null };
 type SubjectsInput = z.infer<typeof SubjectsIn>;
 
-export const fetchSubjects = createServerFn({ method: "POST" })
+export const fetchSubjects = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
   .inputValidator((input: unknown): SubjectsInput => SubjectsIn.parse(input))
   .handler(async ({ data }) => {
     const ck = `subjects:v3:${data.country.toLowerCase()}:${data.grade.toLowerCase()}`;
@@ -112,7 +113,7 @@ const ChaptersIn = SubjectsIn.extend({ subject: z.string().min(1).max(80) });
 type Chapter = { name: string; emoji: string; summary: string; image_url?: string | null };
 type ChaptersInput = z.infer<typeof ChaptersIn>;
 
-export const fetchChapters = createServerFn({ method: "POST" })
+export const fetchChapters = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
   .inputValidator((input: unknown): ChaptersInput => ChaptersIn.parse(input))
   .handler(async ({ data }) => {
     const ck = `chapters:v2:${data.country.toLowerCase()}:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}`;
@@ -159,7 +160,7 @@ const CtxIn = z.object({
 });
 type CurriculumContextInput = z.infer<typeof CtxIn>;
 
-export const fetchCurriculumContext = createServerFn({ method: "POST" })
+export const fetchCurriculumContext = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
   .inputValidator((input: unknown): CurriculumContextInput => CtxIn.parse(input))
   .handler(async ({ data }) => {
     const q = data.chapter
