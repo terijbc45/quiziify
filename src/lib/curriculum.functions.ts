@@ -71,7 +71,7 @@ type SubjectsInput = z.infer<typeof SubjectsIn>;
 export const fetchSubjects = createServerFn({ method: "POST" })
   .inputValidator((input: unknown): SubjectsInput => SubjectsIn.parse(input))
   .handler(async ({ data }) => {
-    const ck = `subjects:v2:${data.country.toLowerCase()}:${data.grade.toLowerCase()}`;
+    const ck = `subjects:v3:${data.country.toLowerCase()}:${data.grade.toLowerCase()}`;
     const cached = await cacheGet<{ subjects: Subject[] }>(ck);
     if (cached?.subjects?.length) return { subjects: cached.subjects };
 
