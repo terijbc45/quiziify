@@ -209,7 +209,7 @@ function Test() {
           <Timer className="h-10 w-10 mx-auto mb-2" />
           <p className="text-white/80 text-sm">{countryMeta?.flag} {countryMeta?.name} · {gradeLabel(grade)}</p>
           <p className="text-3xl font-bold">Test Mode</p>
-          <p className="text-white/80 text-xs mt-2">100 questions · 60-minute timer</p>
+          <p className="text-white/80 text-xs mt-2">100 questions · set your own timer</p>
         </div>
         {loadingSubjects ? (
           <BrainLoader label="Loading subjects" />
