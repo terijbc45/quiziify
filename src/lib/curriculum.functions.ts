@@ -75,16 +75,16 @@ export const fetchSubjects = createServerFn({ method: "POST" })
     const cached = await cacheGet<{ subjects: Subject[] }>(ck);
     if (cached?.subjects?.length) return { subjects: cached.subjects };
 
-    const ctx = await firecrawlContext(`Nepal ${data.grade} school subjects CDC curriculum syllabus NEB`);
+    const ctx = await firecrawlContext(`Nepal ${data.grade} school subjects CDC curriculum syllabus NEB compulsory optional SEE`);
     const out = await aiExtract<{ subjects: Subject[] }>(
-      `You list the OFFICIAL school subjects studied in NEPAL for the given grade according to the Nepal Curriculum Development Centre (CDC, Sanothimi Bhaktapur) and the National Examinations Board (NEB, for class 11-12). For class 8 you must use CDC's Basic Education curriculum; for class 9-10 the Secondary Education Curriculum (SEE); for class 11-12 the NEB curriculum (typically a faculty choice such as Science / Management / Humanities — list the COMMON COMPULSORY subjects PLUS the most popular optional faculty groupings). Output the COMPLETE genuine list — do not invent or omit. Each subject has a single emoji and a one-line blurb. Use the provided web context (Nepal CDC / NEB / edusanjal) as ground truth.${ctx ? `\n\nWEB CONTEXT:\n${ctx}` : ""}`,
-      `Country: Nepal\nGrade/Class: ${data.grade}\nList every standard CDC / NEB subject for this class — compulsory and the common optional groupings.`,
+      `You list the COMPLETE OFFICIAL school subjects studied in NEPAL for the given grade according to the Nepal Curriculum Development Centre (CDC, Sanothimi Bhaktapur) and the National Examinations Board (NEB, for class 11-12). For class 8-10 you MUST list every standard subject offered for SEE preparation — this typically includes ALL of: Nepali, English, Compulsory Mathematics, Optional Mathematics, Science (Compulsory Science) [class 9-10], Social Studies (Samajik Adhyayan), Health-Population-Environment / Population Studies, Computer Science / Computer Applications, Occupation Business & Technology Education (OBTE), Moral Education, Accountancy / Bookkeeping, Economics, plus any local/optional subject (Sanskrit, regional language). For class 11-12 list the NEB compulsory subjects PLUS the popular faculty groupings (Science: Physics, Chemistry, Biology/Mathematics; Management: Accountancy, Business Studies, Economics, Hotel Management; Humanities: Sociology, Psychology, Political Science, Geography; Education). Output EVERY subject — do NOT cap or omit. Each subject has a single emoji and one-line blurb. Use the provided web context (Nepal CDC / NEB / edusanjal) as ground truth.${ctx ? `\n\nWEB CONTEXT:\n${ctx}` : ""}`,
+      `Country: Nepal\nGrade/Class: ${data.grade}\nList every standard CDC / NEB subject for this class — compulsory AND optional groupings. Do not skip any.`,
       "submit_subjects",
       {
         type: "object",
         properties: {
           subjects: {
-            type: "array", minItems: 5, maxItems: 16,
+            type: "array", minItems: 6, maxItems: 24,
             items: {
               type: "object",
               properties: { name: { type: "string" }, emoji: { type: "string" }, blurb: { type: "string" } },
