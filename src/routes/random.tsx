@@ -41,6 +41,7 @@ function Test() {
 
   const [chapterUpto, setChapterUpto] = useState<number | null>(null); // 1-based index
   const [difficulty, setDifficulty] = useState<Difficulty>("default");
+  const [timerMin, setTimerMin] = useState<number>(DEFAULT_TIMER_MIN);
 
   const [started, setStarted] = useState(false);
   const [loading, setLoading] = useState(false);
