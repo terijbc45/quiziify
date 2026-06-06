@@ -52,7 +52,7 @@ function fallbackQuestions(data: GenerateQuestionsInput): GeneratedQuestion[] {
   }];
 }
 
-export const generateQuestions = createServerFn({ method: "POST" })
+export const generateQuestions = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
   .inputValidator((input: unknown): GenerateQuestionsInput => Input.parse(input))
   .handler(async ({ data }) => {
     const key = process.env.LOVABLE_API_KEY;
@@ -166,7 +166,7 @@ const SummaryInput = z.object({
 });
 type SummaryInputValue = z.infer<typeof SummaryInput>;
 
-export const explainQuestion = createServerFn({ method: "POST" })
+export const explainQuestion = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
   .inputValidator((input: unknown): SummaryInputValue => SummaryInput.parse(input))
   .handler(async ({ data }) => {
     const key = process.env.LOVABLE_API_KEY;
