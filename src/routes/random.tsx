@@ -21,7 +21,7 @@ type Chapter = { name: string; emoji: string; summary: string; image_url?: strin
 type Difficulty = "default" | "easy" | "intermediate" | "hard";
 
 const TOTAL_QUESTIONS = 100;
-const TIMER_SECONDS = 60 * 60; // 60 minutes
+const DEFAULT_TIMER_MIN = 60;
 
 function Test() {
   const { user } = useAuth();
