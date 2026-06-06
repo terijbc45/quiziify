@@ -192,7 +192,7 @@ function Test() {
           onFinish={finish}
           onRetry={startTest}
           hideDeepDive
-          timerSeconds={TIMER_SECONDS}
+          timerSeconds={Math.max(1, timerMin) * 60}
         />
       </div>
     );
