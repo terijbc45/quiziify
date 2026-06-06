@@ -58,7 +58,6 @@ function Home() {
         <div className="mt-6 flex items-center gap-4 flex-wrap">
           {progress && (
             <>
-              <Stat icon={<TrendingUp className="h-4 w-4" />} label="Level" value={progress.current_level} />
               <Stat icon={<Trophy className="h-4 w-4" />} label="Score" value={progress.total_score} />
               <Stat icon={<BookOpen className="h-4 w-4" />} label="Chapters" value={chapterProgress.length} />
             </>
