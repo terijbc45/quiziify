@@ -21,7 +21,7 @@ type Chapter = { name: string; emoji: string; summary: string; image_url?: strin
 type Difficulty = "default" | "easy" | "intermediate" | "hard";
 
 const TOTAL_QUESTIONS = 100;
-const TIMER_SECONDS = 60 * 60; // 60 minutes
+const DEFAULT_TIMER_MIN = 60;
 
 function Test() {
   const { user } = useAuth();
@@ -41,6 +41,7 @@ function Test() {
 
   const [chapterUpto, setChapterUpto] = useState<number | null>(null); // 1-based index
   const [difficulty, setDifficulty] = useState<Difficulty>("default");
+  const [timerMin, setTimerMin] = useState<number>(DEFAULT_TIMER_MIN);
 
   const [started, setStarted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -191,7 +192,7 @@ function Test() {
           onFinish={finish}
           onRetry={startTest}
           hideDeepDive
-          timerSeconds={TIMER_SECONDS}
+          timerSeconds={Math.max(1, timerMin) * 60}
         />
       </div>
     );
@@ -208,7 +209,7 @@ function Test() {
           <Timer className="h-10 w-10 mx-auto mb-2" />
           <p className="text-white/80 text-sm">{countryMeta?.flag} {countryMeta?.name} · {gradeLabel(grade)}</p>
           <p className="text-3xl font-bold">Test Mode</p>
-          <p className="text-white/80 text-xs mt-2">100 questions · 60-minute timer</p>
+          <p className="text-white/80 text-xs mt-2">100 questions · set your own timer</p>
         </div>
         {loadingSubjects ? (
           <BrainLoader label="Loading subjects" />
@@ -289,9 +290,31 @@ function Test() {
               ))}
             </div>
 
+            <p className="font-semibold text-sm mb-2">Timer (minutes)</p>
+            <div className="flex items-center gap-2 mb-6 flex-wrap">
+              {[15, 30, 45, 60, 90, 120].map((m) => (
+                <button key={m} onClick={() => setTimerMin(m)}
+                  className={cn(
+                    "rounded-xl border-2 px-3 py-2 text-xs font-bold transition-all",
+                    timerMin === m ? "border-primary bg-primary/10 text-primary" : "border-border bg-white hover:border-primary/50 text-foreground",
+                  )}>
+                  {m} min
+                </button>
+              ))}
+              <input
+                type="number"
+                min={1}
+                max={300}
+                value={timerMin}
+                onChange={(e) => setTimerMin(Math.max(1, Math.min(300, Number(e.target.value) || 1)))}
+                className="w-24 rounded-xl border-2 border-border bg-white px-3 py-2 text-xs font-bold text-foreground focus:border-primary outline-none"
+                aria-label="Custom timer in minutes"
+              />
+            </div>
+
             <Button onClick={startTest} disabled={!chapterUpto}
               className="w-full h-12 rounded-2xl bg-gradient-hero font-bold text-base">
-              <Timer className="h-4 w-4 mr-2" /> Start 100-Q Test (60 min)
+              <Timer className="h-4 w-4 mr-2" /> Start 100-Q Test ({timerMin} min)
             </Button>
           </>
         )}

@@ -86,7 +86,7 @@ export const generateRamailoQuestions = createServerFn({ method: "POST" })
 
     const cat = data.category ?? "random";
     const avoidHint = data.avoid && data.avoid.length > 0
-      ? ` Do NOT repeat these previously-asked questions: ${data.avoid.slice(0, 60).map((q) => `"${q.slice(0, 80)}"`).join("; ")}.`
+      ? ` HARD RULE: Do NOT repeat or paraphrase any of these previously-asked questions — produce completely fresh ones every batch: ${data.avoid.slice(-120).map((q) => `"${q.slice(0, 80)}"`).join("; ")}.`
       : "";
 
     const seed = data.nonce ?? `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
