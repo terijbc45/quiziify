@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { fetchLatestSnippets } from "../server/firecrawl.server";
 import { fetchLogoImage, fetchPlaceImage, fetchFoodAnimalImage } from "../server/firecrawl-images.server";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
