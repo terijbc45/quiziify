@@ -79,7 +79,7 @@ DELIBERATELY rotate across these buckets — never two questions from the same b
 }
 
 
-export const generateRamailoQuestions = createServerFn({ method: "POST" })
+export const generateRamailoQuestions = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
   .inputValidator((input: unknown): RamailoInput => Input.parse(input))
   .handler(async ({ data }) => {
     const key = process.env.LOVABLE_API_KEY;
