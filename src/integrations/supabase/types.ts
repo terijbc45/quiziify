@@ -14,6 +14,318 @@ export type Database = {
   }
   public: {
     Tables: {
+      cdc_admins: {
+        Row: {
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      cdc_chapters: {
+        Row: {
+          chapter_number: number
+          chapter_title: string
+          created_at: string
+          id: string
+          order_index: number
+          subject_id: string
+        }
+        Insert: {
+          chapter_number: number
+          chapter_title: string
+          created_at?: string
+          id?: string
+          order_index: number
+          subject_id: string
+        }
+        Update: {
+          chapter_number?: number
+          chapter_title?: string
+          created_at?: string
+          id?: string
+          order_index?: number
+          subject_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cdc_chapters_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "cdc_subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cdc_classes: {
+        Row: {
+          created_at: string
+          grade: number
+          id: string
+          stream: Database["public"]["Enums"]["cdc_stream"] | null
+        }
+        Insert: {
+          created_at?: string
+          grade: number
+          id?: string
+          stream?: Database["public"]["Enums"]["cdc_stream"] | null
+        }
+        Update: {
+          created_at?: string
+          grade?: number
+          id?: string
+          stream?: Database["public"]["Enums"]["cdc_stream"] | null
+        }
+        Relationships: []
+      }
+      cdc_content_chunks: {
+        Row: {
+          created_at: string
+          id: string
+          last_synced_at: string
+          page_reference: string | null
+          raw_text: string
+          source_document_name: string | null
+          source_url: string | null
+          topic_id: string
+          verified: boolean
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_synced_at?: string
+          page_reference?: string | null
+          raw_text: string
+          source_document_name?: string | null
+          source_url?: string | null
+          topic_id: string
+          verified?: boolean
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_synced_at?: string
+          page_reference?: string | null
+          raw_text?: string
+          source_document_name?: string | null
+          source_url?: string | null
+          topic_id?: string
+          verified?: boolean
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cdc_content_chunks_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "cdc_topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cdc_questions: {
+        Row: {
+          correct_answer: string
+          created_at: string
+          difficulty: Database["public"]["Enums"]["cdc_difficulty"]
+          id: string
+          options: Json | null
+          question_text: string
+          question_type: Database["public"]["Enums"]["cdc_question_type"]
+          source_chunk_id: string | null
+          topic_id: string
+          verified: boolean
+        }
+        Insert: {
+          correct_answer: string
+          created_at?: string
+          difficulty?: Database["public"]["Enums"]["cdc_difficulty"]
+          id?: string
+          options?: Json | null
+          question_text: string
+          question_type?: Database["public"]["Enums"]["cdc_question_type"]
+          source_chunk_id?: string | null
+          topic_id: string
+          verified?: boolean
+        }
+        Update: {
+          correct_answer?: string
+          created_at?: string
+          difficulty?: Database["public"]["Enums"]["cdc_difficulty"]
+          id?: string
+          options?: Json | null
+          question_text?: string
+          question_type?: Database["public"]["Enums"]["cdc_question_type"]
+          source_chunk_id?: string | null
+          topic_id?: string
+          verified?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cdc_questions_source_chunk_id_fkey"
+            columns: ["source_chunk_id"]
+            isOneToOne: false
+            referencedRelation: "cdc_content_chunks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cdc_questions_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "cdc_topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cdc_student_progress: {
+        Row: {
+          accuracy_percent: number
+          chapter_id: string | null
+          created_at: string
+          id: string
+          last_attempted_at: string | null
+          status: Database["public"]["Enums"]["cdc_progress_status"]
+          student_id: string
+          subject_id: string
+          topic_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          accuracy_percent?: number
+          chapter_id?: string | null
+          created_at?: string
+          id?: string
+          last_attempted_at?: string | null
+          status?: Database["public"]["Enums"]["cdc_progress_status"]
+          student_id: string
+          subject_id: string
+          topic_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accuracy_percent?: number
+          chapter_id?: string | null
+          created_at?: string
+          id?: string
+          last_attempted_at?: string | null
+          status?: Database["public"]["Enums"]["cdc_progress_status"]
+          student_id?: string
+          subject_id?: string
+          topic_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cdc_student_progress_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "cdc_chapters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cdc_student_progress_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "cdc_subjects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cdc_student_progress_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "cdc_topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cdc_subjects: {
+        Row: {
+          class_id: string
+          created_at: string
+          id: string
+          is_compulsory: boolean
+          is_optional: boolean
+          order_index: number
+          subject_code: string | null
+          subject_name: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          id?: string
+          is_compulsory?: boolean
+          is_optional?: boolean
+          order_index?: number
+          subject_code?: string | null
+          subject_name: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          id?: string
+          is_compulsory?: boolean
+          is_optional?: boolean
+          order_index?: number
+          subject_code?: string | null
+          subject_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cdc_subjects_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "cdc_classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cdc_topics: {
+        Row: {
+          chapter_id: string
+          created_at: string
+          id: string
+          learning_objectives: string[]
+          order_index: number
+          topic_title: string
+        }
+        Insert: {
+          chapter_id: string
+          created_at?: string
+          id?: string
+          learning_objectives?: string[]
+          order_index: number
+          topic_title: string
+        }
+        Update: {
+          chapter_id?: string
+          created_at?: string
+          id?: string
+          learning_objectives?: string[]
+          order_index?: number
+          topic_title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cdc_topics_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "cdc_chapters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chapter_progress: {
         Row: {
           best_score: number
@@ -87,6 +399,30 @@ export type Database = {
           created_at?: string
           date?: string
           id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      learning_streaks: {
+        Row: {
+          current_streak: number
+          last_active_date: string | null
+          longest_streak: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          current_streak?: number
+          last_active_date?: string | null
+          longest_streak?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          current_streak?: number
+          last_active_date?: string | null
+          longest_streak?: number
           updated_at?: string
           user_id?: string
         }
@@ -377,10 +713,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_cdc_admin: { Args: { _user: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      cdc_difficulty: "easy" | "medium" | "hard"
+      cdc_progress_status: "not_started" | "in_progress" | "mastered"
+      cdc_question_type: "MCQ" | "short" | "long" | "numerical"
+      cdc_stream: "Science" | "Management" | "Humanities" | "Education" | "Law"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -507,6 +846,11 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      cdc_difficulty: ["easy", "medium", "hard"],
+      cdc_progress_status: ["not_started", "in_progress", "mastered"],
+      cdc_question_type: ["MCQ", "short", "long", "numerical"],
+      cdc_stream: ["Science", "Management", "Humanities", "Education", "Law"],
+    },
   },
 } as const
