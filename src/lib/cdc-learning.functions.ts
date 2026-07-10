@@ -92,7 +92,7 @@ export const recordActivity = createServerFn({ method: "POST" })
       _chapter_id: data.chapter_id,
       _topic_id: data.topic_id,
       _status: data.status,
-      _accuracy: data.accuracy ?? null,
+      _accuracy: data.accuracy ?? undefined,
     });
     if (error) throw new Error(error.message);
     return { ok: true };
