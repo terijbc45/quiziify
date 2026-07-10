@@ -291,6 +291,39 @@ export type Database = {
           },
         ]
       }
+      cdc_sync_log: {
+        Row: {
+          chunks_added: number
+          created_at: string
+          error_text: string | null
+          id: string
+          questions_added: number
+          run_by: string | null
+          scope: string
+          status: string
+        }
+        Insert: {
+          chunks_added?: number
+          created_at?: string
+          error_text?: string | null
+          id?: string
+          questions_added?: number
+          run_by?: string | null
+          scope: string
+          status?: string
+        }
+        Update: {
+          chunks_added?: number
+          created_at?: string
+          error_text?: string | null
+          id?: string
+          questions_added?: number
+          run_by?: string | null
+          scope?: string
+          status?: string
+        }
+        Relationships: []
+      }
       cdc_topics: {
         Row: {
           chapter_id: string
@@ -713,7 +746,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_first_cdc_admin: { Args: never; Returns: boolean }
       is_cdc_admin: { Args: { _user: string }; Returns: boolean }
+      record_learning_activity: {
+        Args: {
+          _accuracy?: number
+          _chapter_id: string
+          _status: string
+          _subject_id: string
+          _topic_id: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       cdc_difficulty: "easy" | "medium" | "hard"
