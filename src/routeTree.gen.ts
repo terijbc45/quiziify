@@ -16,12 +16,10 @@ import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PostsRouteImport } from './routes/posts'
 import { Route as PlayRouteImport } from './routes/play'
 import { Route as LevelRouteImport } from './routes/level'
-import { Route as LearnRouteImport } from './routes/learn'
 import { Route as CreateRouteImport } from './routes/create'
 import { Route as ChaptersRouteImport } from './routes/chapters'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AdminCdcRouteImport } from './routes/admin.cdc'
 
 const RemindersRoute = RemindersRouteImport.update({
   id: '/reminders',
@@ -58,11 +56,6 @@ const LevelRoute = LevelRouteImport.update({
   path: '/level',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LearnRoute = LearnRouteImport.update({
-  id: '/learn',
-  path: '/learn',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const CreateRoute = CreateRouteImport.update({
   id: '/create',
   path: '/create',
@@ -83,18 +76,12 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminCdcRoute = AdminCdcRouteImport.update({
-  id: '/admin/cdc',
-  path: '/admin/cdc',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/chapters': typeof ChaptersRoute
   '/create': typeof CreateRoute
-  '/learn': typeof LearnRoute
   '/level': typeof LevelRoute
   '/play': typeof PlayRoute
   '/posts': typeof PostsRoute
@@ -102,14 +89,12 @@ export interface FileRoutesByFullPath {
   '/ramailo': typeof RamailoRoute
   '/random': typeof RandomRoute
   '/reminders': typeof RemindersRoute
-  '/admin/cdc': typeof AdminCdcRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/chapters': typeof ChaptersRoute
   '/create': typeof CreateRoute
-  '/learn': typeof LearnRoute
   '/level': typeof LevelRoute
   '/play': typeof PlayRoute
   '/posts': typeof PostsRoute
@@ -117,7 +102,6 @@ export interface FileRoutesByTo {
   '/ramailo': typeof RamailoRoute
   '/random': typeof RandomRoute
   '/reminders': typeof RemindersRoute
-  '/admin/cdc': typeof AdminCdcRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -125,7 +109,6 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/chapters': typeof ChaptersRoute
   '/create': typeof CreateRoute
-  '/learn': typeof LearnRoute
   '/level': typeof LevelRoute
   '/play': typeof PlayRoute
   '/posts': typeof PostsRoute
@@ -133,7 +116,6 @@ export interface FileRoutesById {
   '/ramailo': typeof RamailoRoute
   '/random': typeof RandomRoute
   '/reminders': typeof RemindersRoute
-  '/admin/cdc': typeof AdminCdcRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -142,7 +124,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/chapters'
     | '/create'
-    | '/learn'
     | '/level'
     | '/play'
     | '/posts'
@@ -150,14 +131,12 @@ export interface FileRouteTypes {
     | '/ramailo'
     | '/random'
     | '/reminders'
-    | '/admin/cdc'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
     | '/chapters'
     | '/create'
-    | '/learn'
     | '/level'
     | '/play'
     | '/posts'
@@ -165,14 +144,12 @@ export interface FileRouteTypes {
     | '/ramailo'
     | '/random'
     | '/reminders'
-    | '/admin/cdc'
   id:
     | '__root__'
     | '/'
     | '/auth'
     | '/chapters'
     | '/create'
-    | '/learn'
     | '/level'
     | '/play'
     | '/posts'
@@ -180,7 +157,6 @@ export interface FileRouteTypes {
     | '/ramailo'
     | '/random'
     | '/reminders'
-    | '/admin/cdc'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -188,7 +164,6 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ChaptersRoute: typeof ChaptersRoute
   CreateRoute: typeof CreateRoute
-  LearnRoute: typeof LearnRoute
   LevelRoute: typeof LevelRoute
   PlayRoute: typeof PlayRoute
   PostsRoute: typeof PostsRoute
@@ -196,7 +171,6 @@ export interface RootRouteChildren {
   RamailoRoute: typeof RamailoRoute
   RandomRoute: typeof RandomRoute
   RemindersRoute: typeof RemindersRoute
-  AdminCdcRoute: typeof AdminCdcRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -250,13 +224,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LevelRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/learn': {
-      id: '/learn'
-      path: '/learn'
-      fullPath: '/learn'
-      preLoaderRoute: typeof LearnRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/create': {
       id: '/create'
       path: '/create'
@@ -285,13 +252,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/cdc': {
-      id: '/admin/cdc'
-      path: '/admin/cdc'
-      fullPath: '/admin/cdc'
-      preLoaderRoute: typeof AdminCdcRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -300,7 +260,6 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ChaptersRoute: ChaptersRoute,
   CreateRoute: CreateRoute,
-  LearnRoute: LearnRoute,
   LevelRoute: LevelRoute,
   PlayRoute: PlayRoute,
   PostsRoute: PostsRoute,
@@ -308,8 +267,17 @@ const rootRouteChildren: RootRouteChildren = {
   RamailoRoute: RamailoRoute,
   RandomRoute: RandomRoute,
   RemindersRoute: RemindersRoute,
-  AdminCdcRoute: AdminCdcRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

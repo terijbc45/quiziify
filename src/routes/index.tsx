@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { TrendingUp, Trophy, Play, CalendarDays, Pencil, BookOpen, Flame, GraduationCap, ShieldCheck } from "lucide-react";
+import { TrendingUp, Trophy, Play, CalendarDays, Pencil, BookOpen } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,9 +11,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { useServerFn } from "@tanstack/react-start";
-import { getMyStreakAndProgress } from "@/lib/cdc-learning.functions";
-import { checkIsAdmin } from "@/lib/cdc-admin.functions";
 
 export const Route = createFileRoute("/")({ component: Index });
 
@@ -37,11 +34,6 @@ function Home() {
   const [progress, setProgress] = useState<{ current_level: number; total_score: number } | null>(null);
   const [name, setName] = useState("");
   const [chapterProgress, setChapterProgress] = useState<ChapterProgressRow[]>([]);
-  const [streak, setStreak] = useState<{ current_streak: number; longest_streak: number }>({ current_streak: 0, longest_streak: 0 });
-  const [cdcProgressCount, setCdcProgressCount] = useState(0);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const getStreak = useServerFn(getMyStreakAndProgress);
-  const getAdmin = useServerFn(checkIsAdmin);
 
   useEffect(() => {
     if (!user) return;
@@ -55,12 +47,7 @@ function Home() {
       .order("completed_at", { ascending: false })
       .limit(100)
       .then(({ data }) => { if (data) setChapterProgress(data as ChapterProgressRow[]); });
-    getStreak().then((r) => {
-      setStreak({ current_streak: r.streak.current_streak ?? 0, longest_streak: r.streak.longest_streak ?? 0 });
-      setCdcProgressCount(r.progress.length);
-    }).catch(() => {});
-    getAdmin().then((r) => setIsAdmin(r.isAdmin)).catch(() => {});
-  }, [user, getStreak, getAdmin]);
+  }, [user]);
 
   return (
     <div className="space-y-6 animate-slide-in">
@@ -69,9 +56,12 @@ function Home() {
         <p className="text-white/80 text-sm font-medium">Welcome back{name ? `, ${name}` : ""}</p>
         <h1 className="text-3xl md:text-4xl font-bold mt-1">Ready to learn something new?</h1>
         <div className="mt-6 flex items-center gap-4 flex-wrap">
-          {progress && <Stat icon={<Trophy className="h-4 w-4" />} label="Score" value={progress.total_score} />}
-          <Stat icon={<BookOpen className="h-4 w-4" />} label="Chapters" value={chapterProgress.length} />
-          <Stat icon={<Flame className="h-4 w-4" />} label="Streak" value={streak.current_streak} />
+          {progress && (
+            <>
+              <Stat icon={<Trophy className="h-4 w-4" />} label="Score" value={progress.total_score} />
+              <Stat icon={<BookOpen className="h-4 w-4" />} label="Chapters" value={chapterProgress.length} />
+            </>
+          )}
           <Link
             to="/play"
             className="ml-auto inline-flex items-center gap-1.5 bg-white text-foreground font-bold px-3 py-2 md:px-6 md:py-3 rounded-full shadow-soft hover:scale-105 transition-transform text-sm md:text-base"
@@ -81,54 +71,7 @@ function Home() {
         </div>
       </div>
 
-      <div className="grid sm:grid-cols-2 gap-4">
-        <IosProgressRing
-          current={streak.current_streak}
-          longest={streak.longest_streak}
-          topics={cdcProgressCount}
-        />
-        <div className="rounded-3xl bg-card p-6 shadow-card border border-border flex flex-col">
-          <h2 className="font-bold text-lg flex items-center gap-2 mb-1"><GraduationCap className="h-5 w-5 text-primary" /> CDC syllabus</h2>
-          <p className="text-sm text-muted-foreground mb-4">Learn the official Nepal CDC/NEB course, chapter by chapter.</p>
-          <div className="mt-auto flex flex-wrap gap-2">
-            <Link to="/learn" className="inline-flex items-center gap-1 bg-primary text-primary-foreground rounded-full px-4 py-2 text-sm font-semibold hover:opacity-90">
-              <GraduationCap className="h-4 w-4" /> Open learning
-            </Link>
-            {isAdmin && (
-              <Link to="/admin/cdc" className="inline-flex items-center gap-1 border border-border rounded-full px-4 py-2 text-sm font-semibold hover:bg-muted">
-                <ShieldCheck className="h-4 w-4" /> Admin
-              </Link>
-            )}
-          </div>
-        </div>
-      </div>
-
       <ProgressCarousel rows={chapterProgress} />
-    </div>
-  );
-}
-
-function IosProgressRing({ current, longest, topics }: { current: number; longest: number; topics: number }) {
-  const pct = Math.min(100, Math.round((current / Math.max(7, longest || 7)) * 100));
-  const R = 52;
-  const C = 2 * Math.PI * R;
-  const offset = C - (C * pct) / 100;
-  return (
-    <div className="rounded-3xl bg-gradient-to-br from-orange-500 via-pink-500 to-red-500 p-6 shadow-glow text-white relative overflow-hidden">
-      <div className="absolute -top-8 -right-8 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
-      <div className="flex items-center gap-5">
-        <svg viewBox="0 0 140 140" className="h-32 w-32 -rotate-90">
-          <circle cx="70" cy="70" r={R} stroke="rgba(255,255,255,0.25)" strokeWidth="12" fill="none" />
-          <circle cx="70" cy="70" r={R} stroke="white" strokeWidth="12" fill="none"
-            strokeDasharray={C} strokeDashoffset={offset} strokeLinecap="round"
-            className="transition-all duration-700" />
-        </svg>
-        <div>
-          <div className="text-4xl font-bold flex items-center gap-1"><Flame className="h-7 w-7" />{current}</div>
-          <div className="text-xs text-white/80 mt-1">day streak</div>
-          <div className="text-xs text-white/70 mt-2">Best {longest} · {topics} topics learned</div>
-        </div>
-      </div>
     </div>
   );
 }
