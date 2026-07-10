@@ -256,7 +256,7 @@ export const syncSubject = createServerFn({ method: "POST" })
             const { error: qErr } = await context.supabase.from("cdc_questions").insert({
               topic_id: topicId,
               question_text: q.q,
-              question_type: "mcq",
+              question_type: "MCQ",
               options: q.options,
               correct_answer: q.answer,
               difficulty: q.difficulty,
