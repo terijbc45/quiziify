@@ -62,6 +62,8 @@ function Profile() {
           setAvatar(data.avatar_url ?? null);
           setCover((data as { cover_photo_url?: string | null }).cover_photo_url ?? null);
           setGrade((data as { grade?: string | null }).grade ?? "");
+          const os = (data as { optional_subjects?: string[] | null }).optional_subjects;
+          setOptionalSubjects(Array.isArray(os) ? os.slice(0, 2) : []);
         }
       });
     supabase.from("level_progress").select("current_level,total_score").eq("user_id", user.id).maybeSingle()
