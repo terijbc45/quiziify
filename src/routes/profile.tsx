@@ -447,6 +447,44 @@ function Profile() {
                 <Globe className="h-3 w-3" /> 🇳🇵 Quiziify is tailored to the Nepal CDC curriculum.
               </p>
             </div>
+            {classPicksOptionals(grade) && (
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5"><BookMarked className="h-3.5 w-3.5" /> Optional subjects (pick 2)</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {optionalSubjectOptions(grade).map((s) => {
+                    const picked = optionalSubjects.includes(s);
+                    const full = optionalSubjects.length >= 2;
+                    return (
+                      <button
+                        type="button"
+                        key={s}
+                        onClick={() => {
+                          setOptionalSubjects((cur) => {
+                            if (cur.includes(s)) return cur.filter((x) => x !== s);
+                            if (cur.length >= 2) return cur;
+                            return [...cur, s];
+                          });
+                        }}
+                        disabled={!picked && full}
+                        className={`text-left text-xs font-semibold px-3 py-2 rounded-xl border-2 transition-all ${
+                          picked
+                            ? "bg-primary text-primary-foreground border-primary shadow-soft scale-[1.02]"
+                            : full
+                            ? "bg-muted/40 text-muted-foreground border-transparent opacity-60"
+                            : "bg-background border-border hover:border-primary hover:bg-primary/5"
+                        }`}
+                      >
+                        {picked && <span className="mr-1">✓</span>}
+                        {s}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Selected {optionalSubjects.length}/2 — used to tailor your chapters, quizzes & study reminders.
+                </p>
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label>Bio</Label>
               <Textarea value={bio} onChange={(e) => setBio(e.target.value)} maxLength={280} className="rounded-xl min-h-[120px]" placeholder="Tell people about yourself…" />
