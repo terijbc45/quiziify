@@ -65,7 +65,11 @@ async function aiExtract<T>(systemPrompt: string, userPrompt: string, toolName: 
 }
 
 // ---------- Subjects ----------
-const SubjectsIn = z.object({ country: z.string().min(2).max(80), grade: z.string().min(1).max(40) });
+const SubjectsIn = z.object({
+  country: z.string().min(2).max(80),
+  grade: z.string().min(1).max(40),
+  optionals: z.array(z.string().min(1).max(80)).max(6).optional(),
+});
 type Subject = { name: string; emoji: string; blurb: string; image_url?: string | null };
 type SubjectsInput = z.infer<typeof SubjectsIn>;
 
