@@ -25,8 +25,8 @@ const Categories = z.enum(["random", "logo", "places", "food_animals"]);
 const Language = z.enum(["en", "ne"]);
 
 const Input = z.object({
-  count: z.number().min(1).max(10).default(5),
-  avoid: z.array(z.string()).max(200).optional(),
+  count: z.number().min(1).max(20).default(10),
+  avoid: z.array(z.string()).max(400).optional(),
   nonce: z.string().max(64).optional(),
   includeLatest: z.boolean().optional(),
   category: Categories.optional(),
