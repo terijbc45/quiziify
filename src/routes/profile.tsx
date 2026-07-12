@@ -208,22 +208,17 @@ function Profile() {
           <div className="text-center">
             <h1 className="text-2xl font-bold">{displayName || "Quizzer"}</h1>
             <p className="text-muted-foreground text-sm mt-0.5">{user?.email}</p>
-            {(country || grade) && (
-              <div className="mt-3 flex items-center justify-center gap-2 flex-wrap">
-                {country && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                    <span className="text-base leading-none">{countryByCode(country)?.flag ?? "🌍"}</span>
-                    {countryByCode(country)?.name ?? country}
-                  </span>
-                )}
-                {grade && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent text-accent-foreground text-xs font-semibold">
-                    <GraduationCap className="h-3.5 w-3.5" />
-                    {gradeLabel(grade)}
-                  </span>
-                )}
-              </div>
-            )}
+            <div className="mt-3 flex items-center justify-center gap-2 flex-wrap">
+              {grade && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent text-accent-foreground text-xs font-semibold">
+                  <GraduationCap className="h-3.5 w-3.5" />
+                  {gradeLabel(grade)}
+                </span>
+              )}
+              {optionalSubjects.length > 0 && (
+                <OptionalSubjectCarousel subjects={optionalSubjects} />
+              )}
+            </div>
             {bio && <p className="mt-3 text-foreground/90 whitespace-pre-wrap">{bio}</p>}
           </div>
 
