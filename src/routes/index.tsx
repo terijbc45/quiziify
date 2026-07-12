@@ -110,35 +110,91 @@ function ProgressCarousel({ rows }: { rows: ChapterProgressRow[] }) {
 
       {slide === 0 ? (
         <>
-          <h2 className="font-bold text-lg flex items-center gap-2 mb-1">
-            <TrendingUp className="h-4 w-4" /> Chapter mastery
-          </h2>
-          <p className="text-xs text-muted-foreground mb-4">
-            Bars show chapters completed per subject — taller means more chapters mastered.
-          </p>
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div>
+              <h2 className="font-bold text-lg flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-primary" /> Chapter mastery
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Chapters completed per subject · average score on top
+              </p>
+            </div>
+            {subjectStats.length > 0 && (
+              <div className="text-right">
+                <div className="text-xs text-muted-foreground">Total</div>
+                <div className="text-2xl font-black text-gradient leading-none">
+                  {subjectStats.reduce((s, x) => s + x.chapters, 0)}
+                </div>
+              </div>
+            )}
+          </div>
           {subjectStats.length === 0 ? (
             <p className="text-muted-foreground text-sm py-8 text-center">
               Finish a chapter in <Link to="/chapters" className="text-primary font-semibold">Chapters mode</Link> to see your progress here.
             </p>
           ) : (
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={subjectStats} margin={{ top: 8, right: 12, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.92 0.01 280)" />
-                  <XAxis dataKey="subject" stroke="oklch(0.5 0.02 280)" fontSize={11} interval={0} angle={-12} textAnchor="end" height={50} />
-                  <YAxis allowDecimals={false} stroke="oklch(0.5 0.02 280)" fontSize={12} />
-                  <Tooltip
-                    contentStyle={{ borderRadius: 12, border: "none", boxShadow: "var(--shadow-card)" }}
-                    formatter={(v: number, n: string) => [v, n === "chapters" ? "Chapters done" : "Avg score"]}
-                  />
-                  <Bar dataKey="chapters" radius={[8, 8, 0, 0]}>
-                    {subjectStats.map((_, i) => (
-                      <Cell key={i} fill={`oklch(0.62 0.22 ${(i * 47) % 360})`} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            <>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={subjectStats} margin={{ top: 24, right: 16, left: -8, bottom: 4 }} barCategoryGap="22%">
+                    <defs>
+                      {subjectStats.map((_, i) => (
+                        <linearGradient key={i} id={`bar-grad-${i}`} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={`oklch(0.72 0.22 ${(i * 47) % 360})`} stopOpacity={1} />
+                          <stop offset="100%" stopColor={`oklch(0.52 0.24 ${(i * 47) % 360})`} stopOpacity={0.9} />
+                        </linearGradient>
+                      ))}
+                    </defs>
+                    <CartesianGrid strokeDasharray="4 6" stroke="oklch(0.9 0.01 280)" vertical={false} />
+                    <XAxis dataKey="subject" stroke="oklch(0.5 0.02 280)" fontSize={11} interval={0} angle={-14} textAnchor="end" height={54} tickLine={false} axisLine={false} />
+                    <YAxis allowDecimals={false} stroke="oklch(0.55 0.02 280)" fontSize={11} tickLine={false} axisLine={false} width={28} />
+                    <Tooltip
+                      cursor={{ fill: "oklch(0.96 0.01 280)", radius: 12 }}
+                      content={({ active, payload }: any) => {
+                        if (!active || !payload?.length) return null;
+                        const p = payload[0].payload as { subject: string; chapters: number; avgScore: number };
+                        return (
+                          <div className="rounded-2xl bg-card border-2 border-primary/20 shadow-glow p-3 text-xs min-w-[160px]">
+                            <div className="font-bold text-sm mb-1">{p.subject}</div>
+                            <div className="flex justify-between gap-3">
+                              <span className="text-muted-foreground">Chapters</span>
+                              <span className="font-bold text-primary">{p.chapters}</span>
+                            </div>
+                            <div className="flex justify-between gap-3">
+                              <span className="text-muted-foreground">Avg score</span>
+                              <span className="font-bold">{p.avgScore}</span>
+                            </div>
+                          </div>
+                        );
+                      }}
+                    />
+                    <Bar dataKey="chapters" radius={[14, 14, 4, 4]} maxBarSize={44}>
+                      {subjectStats.map((_, i) => (
+                        <Cell key={i} fill={`url(#bar-grad-${i})`} />
+                      ))}
+                      <LabelList
+                        dataKey="avgScore"
+                        position="top"
+                        content={({ x, y, width, value }: any) => (
+                          <g transform={`translate(${x + width / 2}, ${y - 6})`}>
+                            <rect x={-14} y={-14} width={28} height={14} rx={7} fill="oklch(0.98 0.01 280)" stroke="oklch(0.62 0.22 280)" strokeWidth={1} />
+                            <text textAnchor="middle" y={-4} fontSize={9} fontWeight={700} fill="oklch(0.4 0.15 280)">{value}%</text>
+                          </g>
+                        )}
+                      />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="mt-3 flex items-center justify-center gap-4 text-[11px] text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-sm bg-gradient-to-b from-primary to-primary/70" /> Chapters done
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-3.5 w-6 rounded-full border border-primary/50 bg-background text-[8px] font-bold text-primary flex items-center justify-center">%</span> Avg score
+                </span>
+              </div>
+            </>
           )}
         </>
       ) : (
