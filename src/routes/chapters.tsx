@@ -49,11 +49,11 @@ function Chapters() {
   useEffect(() => {
     if (!country || !grade) return;
     setLoadingSubjects(true);
-    fetchSubjects({ data: { country, grade } }).then((r: { subjects?: Subject[] }) => {
+    fetchSubjects({ data: { country, grade, optionals } }).then((r: { subjects?: Subject[] }) => {
       setSubjects(r.subjects ?? []);
       setLoadingSubjects(false);
     }).catch(() => setLoadingSubjects(false));
-  }, [country, grade]);
+  }, [country, grade, optionals.join("|")]);
 
   // Load progress
   useEffect(() => {
