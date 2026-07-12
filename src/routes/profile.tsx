@@ -99,14 +99,24 @@ function Profile() {
     if (!user) return;
     const parsed = profileSchema.safeParse({ display_name: displayName, bio, country, grade });
     if (!parsed.success) { toast.error(parsed.error.issues[0].message); return; }
+    // Validate optional subjects for class 9-12
+    const picksOptionals = classPicksOptionals(grade);
+    const cleanOptionals = picksOptionals
+      ? Array.from(new Set(optionalSubjects.filter(Boolean))).slice(0, 2)
+      : [];
+    if (picksOptionals && cleanOptionals.length !== 2) {
+      toast.error("Pick exactly 2 optional subjects for your class");
+      return;
+    }
     setBusy(true);
     const { error } = await supabase.from("profiles").update({
       display_name: parsed.data.display_name,
       bio: parsed.data.bio,
       country: parsed.data.country || null,
       grade: parsed.data.grade || null,
+      optional_subjects: cleanOptionals,
       updated_at: new Date().toISOString(),
-    }).eq("id", user.id);
+    } as any).eq("id", user.id);
     setBusy(false);
     if (error) toast.error(error.message);
     else { toast.success("Profile updated"); setEditing(false); }
