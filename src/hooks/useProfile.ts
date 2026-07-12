@@ -7,7 +7,20 @@ export type ProfileLite = {
   country: string | null;
   grade: string | null;
   avatar_url: string | null;
+  optional_subjects: string[];
 };
+
+const SELECT = "display_name,country,grade,avatar_url,optional_subjects";
+
+function normalize(data: any): ProfileLite {
+  return {
+    display_name: data.display_name,
+    country: data.country ?? "np",
+    grade: data.grade ?? null,
+    avatar_url: data.avatar_url ?? null,
+    optional_subjects: Array.isArray(data.optional_subjects) ? data.optional_subjects : [],
+  };
+}
 
 export function useProfile() {
   const { user } = useAuth();
@@ -18,10 +31,10 @@ export function useProfile() {
     if (!user) { setProfile(null); setLoading(false); return; }
     let cancelled = false;
     setLoading(true);
-    supabase.from("profiles").select("display_name,country,grade,avatar_url").eq("id", user.id).maybeSingle()
+    supabase.from("profiles").select(SELECT).eq("id", user.id).maybeSingle()
       .then(({ data }) => {
         if (cancelled) return;
-        if (data) setProfile({ ...(data as ProfileLite), country: (data as ProfileLite).country ?? "np" });
+        if (data) setProfile(normalize(data));
         setLoading(false);
       });
     return () => { cancelled = true; };
@@ -29,8 +42,8 @@ export function useProfile() {
 
   const refresh = async () => {
     if (!user) return;
-    const { data } = await supabase.from("profiles").select("display_name,country,grade,avatar_url").eq("id", user.id).maybeSingle();
-    if (data) setProfile({ ...(data as ProfileLite), country: (data as ProfileLite).country ?? "np" });
+    const { data } = await supabase.from("profiles").select(SELECT).eq("id", user.id).maybeSingle();
+    if (data) setProfile(normalize(data));
   };
 
   return { profile, loading, refresh };

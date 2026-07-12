@@ -48,11 +48,11 @@ function Ramailo() {
       let promise: ReturnType<typeof prefetchRamailo> | undefined = consumeCachedQuiz(key);
       if (!promise) {
         promise = prefetchRamailo(`ramailo:${user.id}:${cat}${langKey}:${newNonce()}`, {
-          count: 5, avoid: seen.slice(-150), nonce: newNonce(), includeLatest, category: cat, model: PRIMARY_MODEL, language: lang,
+          count: 12, avoid: seen.slice(-300), nonce: newNonce(), includeLatest, category: cat, model: PRIMARY_MODEL, language: lang,
         });
       }
       prefetchRamailo(`ramailo:${user.id}:${cat}${langKey}:next`, {
-        count: 5, avoid: seen.slice(-150), nonce: newNonce(), includeLatest, category: cat, model: SECONDARY_MODEL, language: lang,
+        count: 12, avoid: seen.slice(-300), nonce: newNonce(), includeLatest, category: cat, model: SECONDARY_MODEL, language: lang,
       });
 
       const r = await promise;

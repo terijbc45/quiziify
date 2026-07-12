@@ -8,9 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { Save, Lock, Camera, LogOut, Trophy, TrendingUp, Sparkles, Image as ImageIcon, Pencil, X, FileText, Globe, GraduationCap } from "lucide-react";
+import { Save, Lock, Camera, LogOut, Trophy, TrendingUp, Sparkles, Image as ImageIcon, Pencil, X, FileText, Globe, GraduationCap, BookMarked } from "lucide-react";
 import { toast } from "sonner";
-import { GRADES, countryByCode, gradeLabel, DEFAULT_COUNTRY } from "@/lib/locale-options";
+import { GRADES, gradeLabel, DEFAULT_COUNTRY, classPicksOptionals, optionalSubjectOptions } from "@/lib/locale-options";
 import { formatDistanceToNow } from "date-fns";
 
 export const Route = createFileRoute("/profile")({
@@ -40,6 +40,7 @@ function Profile() {
   const [cover, setCover] = useState<string | null>(null);
   const country = DEFAULT_COUNTRY; // Nepal-only app
   const [grade, setGrade] = useState<string>("");
+  const [optionalSubjects, setOptionalSubjects] = useState<string[]>([]);
   const [editing, setEditing] = useState(false);
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -61,6 +62,8 @@ function Profile() {
           setAvatar(data.avatar_url ?? null);
           setCover((data as { cover_photo_url?: string | null }).cover_photo_url ?? null);
           setGrade((data as { grade?: string | null }).grade ?? "");
+          const os = (data as { optional_subjects?: string[] | null }).optional_subjects;
+          setOptionalSubjects(Array.isArray(os) ? os.slice(0, 2) : []);
         }
       });
     supabase.from("level_progress").select("current_level,total_score").eq("user_id", user.id).maybeSingle()
@@ -96,14 +99,24 @@ function Profile() {
     if (!user) return;
     const parsed = profileSchema.safeParse({ display_name: displayName, bio, country, grade });
     if (!parsed.success) { toast.error(parsed.error.issues[0].message); return; }
+    // Validate optional subjects for class 9-12
+    const picksOptionals = classPicksOptionals(grade);
+    const cleanOptionals = picksOptionals
+      ? Array.from(new Set(optionalSubjects.filter(Boolean))).slice(0, 2)
+      : [];
+    if (picksOptionals && cleanOptionals.length !== 2) {
+      toast.error("Pick exactly 2 optional subjects for your class");
+      return;
+    }
     setBusy(true);
     const { error } = await supabase.from("profiles").update({
       display_name: parsed.data.display_name,
       bio: parsed.data.bio,
       country: parsed.data.country || null,
       grade: parsed.data.grade || null,
+      optional_subjects: cleanOptionals,
       updated_at: new Date().toISOString(),
-    }).eq("id", user.id);
+    } as any).eq("id", user.id);
     setBusy(false);
     if (error) toast.error(error.message);
     else { toast.success("Profile updated"); setEditing(false); }
@@ -195,22 +208,17 @@ function Profile() {
           <div className="text-center">
             <h1 className="text-2xl font-bold">{displayName || "Quizzer"}</h1>
             <p className="text-muted-foreground text-sm mt-0.5">{user?.email}</p>
-            {(country || grade) && (
-              <div className="mt-3 flex items-center justify-center gap-2 flex-wrap">
-                {country && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                    <span className="text-base leading-none">{countryByCode(country)?.flag ?? "🌍"}</span>
-                    {countryByCode(country)?.name ?? country}
-                  </span>
-                )}
-                {grade && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent text-accent-foreground text-xs font-semibold">
-                    <GraduationCap className="h-3.5 w-3.5" />
-                    {gradeLabel(grade)}
-                  </span>
-                )}
-              </div>
-            )}
+            <div className="mt-3 flex items-center justify-center gap-2 flex-wrap">
+              {grade && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent text-accent-foreground text-xs font-semibold">
+                  <GraduationCap className="h-3.5 w-3.5" />
+                  {gradeLabel(grade)}
+                </span>
+              )}
+              {optionalSubjects.length > 0 && (
+                <OptionalSubjectCarousel subjects={optionalSubjects} />
+              )}
+            </div>
             {bio && <p className="mt-3 text-foreground/90 whitespace-pre-wrap">{bio}</p>}
           </div>
 
@@ -439,6 +447,44 @@ function Profile() {
                 <Globe className="h-3 w-3" /> 🇳🇵 Quiziify is tailored to the Nepal CDC curriculum.
               </p>
             </div>
+            {classPicksOptionals(grade) && (
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5"><BookMarked className="h-3.5 w-3.5" /> Optional subjects (pick 2)</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {optionalSubjectOptions(grade).map((s) => {
+                    const picked = optionalSubjects.includes(s);
+                    const full = optionalSubjects.length >= 2;
+                    return (
+                      <button
+                        type="button"
+                        key={s}
+                        onClick={() => {
+                          setOptionalSubjects((cur) => {
+                            if (cur.includes(s)) return cur.filter((x) => x !== s);
+                            if (cur.length >= 2) return cur;
+                            return [...cur, s];
+                          });
+                        }}
+                        disabled={!picked && full}
+                        className={`text-left text-xs font-semibold px-3 py-2 rounded-xl border-2 transition-all ${
+                          picked
+                            ? "bg-primary text-primary-foreground border-primary shadow-soft scale-[1.02]"
+                            : full
+                            ? "bg-muted/40 text-muted-foreground border-transparent opacity-60"
+                            : "bg-background border-border hover:border-primary hover:bg-primary/5"
+                        }`}
+                      >
+                        {picked && <span className="mr-1">✓</span>}
+                        {s}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Selected {optionalSubjects.length}/2 — used to tailor your chapters, quizzes & study reminders.
+                </p>
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label>Bio</Label>
               <Textarea value={bio} onChange={(e) => setBio(e.target.value)} maxLength={280} className="rounded-xl min-h-[120px]" placeholder="Tell people about yourself…" />
@@ -473,4 +519,34 @@ function Section({ title, icon, children }: { title: string; icon: React.ReactNo
     </div>
   );
 }
+
+// Shows the two optional subjects one at a time with a smooth crossfade + slide.
+function OptionalSubjectCarousel({ subjects }: { subjects: string[] }) {
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    if (subjects.length < 2) return;
+    const t = setInterval(() => setIdx((i) => (i + 1) % subjects.length), 2600);
+    return () => clearInterval(t);
+  }, [subjects.length]);
+  const current = subjects[idx] ?? subjects[0];
+  return (
+    <span
+      key={current}
+      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-primary/15 to-fuchsia-500/15 text-primary text-xs font-bold border border-primary/20 shadow-soft animate-fade-in"
+      title={subjects.join(" · ")}
+      aria-label={`Optional subjects: ${subjects.join(", ")}`}
+    >
+      <BookMarked className="h-3.5 w-3.5" />
+      <span className="max-w-[180px] truncate">{current}</span>
+      {subjects.length > 1 && (
+        <span className="flex gap-0.5 ml-1">
+          {subjects.map((_, i) => (
+            <span key={i} className={`h-1 w-1 rounded-full ${i === idx ? "bg-primary" : "bg-primary/30"}`} />
+          ))}
+        </span>
+      )}
+    </span>
+  );
+}
+
 
