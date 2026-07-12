@@ -40,6 +40,7 @@ function Profile() {
   const [cover, setCover] = useState<string | null>(null);
   const country = DEFAULT_COUNTRY; // Nepal-only app
   const [grade, setGrade] = useState<string>("");
+  const [optionalSubjects, setOptionalSubjects] = useState<string[]>([]);
   const [editing, setEditing] = useState(false);
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
