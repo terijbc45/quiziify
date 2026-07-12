@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS optional_subjects text[] NOT NULL DEFAULT '{}'::text[];
