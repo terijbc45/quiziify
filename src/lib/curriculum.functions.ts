@@ -129,10 +129,10 @@ export const fetchChapters = createServerFn({ method: "POST" }).middleware([requ
     const cached = await cacheGet<{ chapters: Chapter[]; context: string }>(ck);
     if (cached?.chapters?.length) return cached;
 
-    const ctx = await firecrawlContext(`Nepal ${data.grade} ${data.subject} chapters table of contents syllabus CDC NEB`);
+    const ctx = await firecrawlContext(`Nepal ${data.grade} ${data.subject} chapters table of contents syllabus CDC NEB textbook units official curriculum ${data.subject} book`);
     const out = await aiExtract<{ chapters: Chapter[] }>(
-      `You list the COMPLETE OFFICIAL chapter / unit names of the given subject for the given grade in NEPAL, in textbook order, based on the current Nepal Curriculum Development Centre (CDC) syllabus (class 8-10) or NEB syllabus (class 11-12). Output EVERY chapter — match the real textbook's count exactly (do NOT cap at 10; many NEB books have 12-20 units). Each chapter has a single emoji and a one-line summary. Use the provided web context (Nepal CDC / NEB / edusanjal) as ground truth.${ctx ? `\n\nWEB CONTEXT:\n${ctx}` : ""}`,
-      `Country: Nepal\nGrade: ${data.grade}\nSubject: ${data.subject}\nList every chapter in textbook order, in full.`,
+      `You list the COMPLETE OFFICIAL chapter / unit names of the given subject for the given grade in NEPAL, in textbook order, based on the current Nepal Curriculum Development Centre (CDC) syllabus (class 8-10) or NEB syllabus (class 11-12). ONLY use chapter titles that appear in the actual CDC / NEB approved textbook (Janak Shiksha Samagri Kendra / CDC published book for class 8-10; NEB approved reference for 11-12). Do NOT invent chapters, do NOT translate loosely, and do NOT copy from Indian NCERT or foreign syllabi. Output EVERY chapter — match the real textbook's count exactly (do NOT cap at 10; many NEB books have 12-20 units). Each chapter has a single emoji and a one-line summary reflecting what the textbook actually covers in that unit. Use the provided web context (Nepal CDC / NEB / edusanjal / opencurriculum.gov.np) as authoritative ground truth.${ctx ? `\n\nWEB CONTEXT:\n${ctx}` : ""}`,
+      `Country: Nepal\nGrade: ${data.grade}\nSubject: ${data.subject}\nList every chapter in textbook order, in full, using the CDC/NEB approved textbook of record.`,
       "submit_chapters",
       {
         type: "object",
