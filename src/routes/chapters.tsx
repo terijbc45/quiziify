@@ -26,6 +26,7 @@ function Chapters() {
 
   const country = profile?.country ?? null;
   const grade = profile?.grade ?? null;
+  const optionals = profile?.optional_subjects ?? [];
   const countryMeta = countryByCode(country);
 
   const [subjects, setSubjects] = useState<Subject[] | null>(null);
