@@ -520,3 +520,33 @@ function Section({ title, icon, children }: { title: string; icon: React.ReactNo
   );
 }
 
+// Shows the two optional subjects one at a time with a smooth crossfade + slide.
+function OptionalSubjectCarousel({ subjects }: { subjects: string[] }) {
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    if (subjects.length < 2) return;
+    const t = setInterval(() => setIdx((i) => (i + 1) % subjects.length), 2600);
+    return () => clearInterval(t);
+  }, [subjects.length]);
+  const current = subjects[idx] ?? subjects[0];
+  return (
+    <span
+      key={current}
+      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-primary/15 to-fuchsia-500/15 text-primary text-xs font-bold border border-primary/20 shadow-soft animate-fade-in"
+      title={subjects.join(" · ")}
+      aria-label={`Optional subjects: ${subjects.join(", ")}`}
+    >
+      <BookMarked className="h-3.5 w-3.5" />
+      <span className="max-w-[180px] truncate">{current}</span>
+      {subjects.length > 1 && (
+        <span className="flex gap-0.5 ml-1">
+          {subjects.map((_, i) => (
+            <span key={i} className={`h-1 w-1 rounded-full ${i === idx ? "bg-primary" : "bg-primary/30"}`} />
+          ))}
+        </span>
+      )}
+    </span>
+  );
+}
+
+
