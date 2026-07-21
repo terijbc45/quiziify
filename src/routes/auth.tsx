@@ -11,7 +11,12 @@ import { Brain, Lock, Mail, Shield, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { GRADES, DEFAULT_COUNTRY } from "@/lib/locale-options";
 
-export const Route = createFileRoute("/auth")({ component: AuthPage });
+export const Route = createFileRoute("/auth")({
+  component: AuthPage,
+  validateSearch: (s: Record<string, unknown>) => ({
+    next: typeof s.next === "string" && s.next.startsWith("/") && !s.next.startsWith("//") ? s.next : undefined,
+  }),
+});
 
 const schema = z.object({
   email: z.string().email("Enter a valid email").max(255),
