@@ -37,17 +37,78 @@ type RamailoInput = z.infer<typeof Input>;
 
 function fallbackQuestions(cat: z.infer<typeof Categories>, lang: z.infer<typeof Language>): RamailoQuestion[] {
   if (cat === "logo") {
-    return [{ question: "Which company's logo is this?", options: ["Apple", "Nike", "Toyota", "Samsung"], correct_index: 0, explanation: "Apple is a globally recognized technology company.", emoji: "🏷️", subject: "Apple", domain: "apple.com", image_url: "https://logo.clearbit.com/apple.com?size=256" }];
+    return [
+      { question: "Which company's logo is this?", options: ["Apple", "Nike", "Toyota", "Samsung"], correct_index: 0, explanation: "Apple — global tech company.", emoji: "🏷️", subject: "Apple", domain: "apple.com" },
+      { question: "Which company's logo is this?", options: ["Nike", "Adidas", "Puma", "Reebok"], correct_index: 0, explanation: "Nike — the swoosh.", emoji: "👟", subject: "Nike", domain: "nike.com" },
+      { question: "Which company's logo is this?", options: ["Google", "Yahoo", "Bing", "Baidu"], correct_index: 0, explanation: "Google — search giant.", emoji: "🔎", subject: "Google", domain: "google.com" },
+      { question: "Which brand's logo is this?", options: ["McDonald's", "KFC", "Burger King", "Subway"], correct_index: 0, explanation: "McDonald's — golden arches.", emoji: "🍔", subject: "McDonalds", domain: "mcdonalds.com" },
+      { question: "Which company's logo is this?", options: ["Toyota", "Honda", "Ford", "BMW"], correct_index: 0, explanation: "Toyota — Japanese carmaker.", emoji: "🚗", subject: "Toyota", domain: "toyota.com" },
+      { question: "Which brand's logo is this?", options: ["Coca-Cola", "Pepsi", "Sprite", "Fanta"], correct_index: 0, explanation: "Coca-Cola — classic cursive.", emoji: "🥤", subject: "Coca-Cola", domain: "coca-cola.com" },
+      { question: "Which company's logo is this?", options: ["Samsung", "Sony", "LG", "Panasonic"], correct_index: 0, explanation: "Samsung — Korean tech.", emoji: "📱", subject: "Samsung", domain: "samsung.com" },
+      { question: "Which company's logo is this?", options: ["Adidas", "Nike", "Puma", "Fila"], correct_index: 0, explanation: "Adidas — three stripes.", emoji: "👟", subject: "Adidas", domain: "adidas.com" },
+      { question: "Which company's logo is this?", options: ["BMW", "Audi", "Mercedes", "VW"], correct_index: 0, explanation: "BMW — roundel.", emoji: "🚙", subject: "BMW", domain: "bmw.com" },
+      { question: "Which app's logo is this?", options: ["Spotify", "Apple Music", "Deezer", "Tidal"], correct_index: 0, explanation: "Spotify — music streaming.", emoji: "🎧", subject: "Spotify", domain: "spotify.com" },
+      { question: "Which app's logo is this?", options: ["Netflix", "Prime", "Hulu", "Disney+"], correct_index: 0, explanation: "Netflix — streaming.", emoji: "🎬", subject: "Netflix", domain: "netflix.com" },
+      { question: "Which brand's logo is this?", options: ["IKEA", "H&M", "Zara", "Uniqlo"], correct_index: 0, explanation: "IKEA — Swedish furniture.", emoji: "🛋️", subject: "IKEA", domain: "ikea.com" },
+    ];
   }
   if (cat === "places") {
-    return [{ question: "Which country's flag is this?", options: ["Nepal", "Japan", "Bhutan", "India"], correct_index: 0, explanation: "Nepal has the world's only non-rectangular national flag.", emoji: "🇳🇵", subject: "Nepal", country_code: "np", image_url: "https://flagcdn.com/w320/np.png" }];
+    return [
+      { question: "Which country's flag is this?", options: ["Nepal", "Japan", "Bhutan", "India"], correct_index: 0, explanation: "Nepal — only non-rectangular flag.", emoji: "🇳🇵", subject: "Nepal", country_code: "np" },
+      { question: "Which country's flag is this?", options: ["Japan", "China", "Korea", "Vietnam"], correct_index: 0, explanation: "Japan — red sun on white.", emoji: "🇯🇵", subject: "Japan", country_code: "jp" },
+      { question: "Which country's flag is this?", options: ["Brazil", "Argentina", "Mexico", "Chile"], correct_index: 0, explanation: "Brazil — green with yellow rhombus.", emoji: "🇧🇷", subject: "Brazil", country_code: "br" },
+      { question: "Which country's flag is this?", options: ["France", "Italy", "Ireland", "Belgium"], correct_index: 0, explanation: "France — blue, white, red tricolour.", emoji: "🇫🇷", subject: "France", country_code: "fr" },
+      { question: "Where is Mount Everest located?", options: ["Nepal", "Bhutan", "Tibet", "India"], correct_index: 0, explanation: "Everest lies on the Nepal–China border.", emoji: "🏔️", subject: "Mount Everest" },
+      { question: "Where is the Eiffel Tower?", options: ["Paris", "Rome", "London", "Berlin"], correct_index: 0, explanation: "Eiffel Tower is in Paris, France.", emoji: "🗼", subject: "Eiffel Tower" },
+      { question: "Where is Pashupatinath Temple?", options: ["Kathmandu", "Pokhara", "Janakpur", "Lalitpur"], correct_index: 0, explanation: "On the banks of the Bagmati in Kathmandu.", emoji: "🛕", subject: "Pashupatinath" },
+      { question: "Which country's flag is this?", options: ["USA", "UK", "Australia", "Canada"], correct_index: 0, explanation: "Stars and stripes — USA.", emoji: "🇺🇸", subject: "United States", country_code: "us" },
+      { question: "Where is the Colosseum?", options: ["Rome", "Athens", "Cairo", "Istanbul"], correct_index: 0, explanation: "The Colosseum is in Rome, Italy.", emoji: "🏛️", subject: "Colosseum" },
+      { question: "Where is Lumbini located?", options: ["Nepal", "India", "Sri Lanka", "Bhutan"], correct_index: 0, explanation: "Lumbini, Nepal — birthplace of Buddha.", emoji: "☸️", subject: "Lumbini" },
+      { question: "Which country's flag is this?", options: ["Germany", "Belgium", "Spain", "Italy"], correct_index: 0, explanation: "Black, red, gold — Germany.", emoji: "🇩🇪", subject: "Germany", country_code: "de" },
+      { question: "Where is the Taj Mahal?", options: ["Agra", "Delhi", "Jaipur", "Mumbai"], correct_index: 0, explanation: "Agra, India.", emoji: "🕌", subject: "Taj Mahal" },
+    ];
   }
   if (cat === "food_animals") {
-    return [{ question: "Which Nepali food is made from fermented leafy greens?", options: ["Gundruk", "Momo", "Yomari", "Dhindo"], correct_index: 0, explanation: "Gundruk is a traditional fermented leafy green food in Nepal.", emoji: "🥬" }];
+    return [
+      { question: "Which Nepali food is fermented leafy greens?", options: ["Gundruk", "Momo", "Yomari", "Dhindo"], correct_index: 0, explanation: "Gundruk — fermented greens.", emoji: "🥬" },
+      { question: "Fastest land animal?", options: ["Cheetah", "Lion", "Horse", "Tiger"], correct_index: 0, explanation: "Cheetah — up to 110 km/h.", emoji: "🐆" },
+      { question: "Which country is sushi from?", options: ["Japan", "China", "Korea", "Thailand"], correct_index: 0, explanation: "Sushi originated in Japan.", emoji: "🍣" },
+      { question: "A baby kangaroo is called a?", options: ["Joey", "Cub", "Calf", "Kit"], correct_index: 0, explanation: "Baby kangaroo = joey.", emoji: "🦘" },
+      { question: "Pizza Margherita originated in?", options: ["Italy", "France", "Greece", "Spain"], correct_index: 0, explanation: "Naples, Italy.", emoji: "🍕" },
+      { question: "National bird of Nepal?", options: ["Danphe", "Peacock", "Eagle", "Crane"], correct_index: 0, explanation: "Danphe (Himalayan Monal).", emoji: "🐦" },
+      { question: "Largest mammal on Earth?", options: ["Blue whale", "Elephant", "Giraffe", "Hippo"], correct_index: 0, explanation: "Blue whale.", emoji: "🐋" },
+      { question: "Momo is a popular dish of?", options: ["Nepal", "Italy", "Mexico", "France"], correct_index: 0, explanation: "Momo — Nepali dumplings.", emoji: "🥟" },
+      { question: "Which animal is the 'ship of the desert'?", options: ["Camel", "Horse", "Donkey", "Ox"], correct_index: 0, explanation: "Camel.", emoji: "🐫" },
+      { question: "Sel roti is a traditional food of?", options: ["Nepal", "India", "Bhutan", "Tibet"], correct_index: 0, explanation: "Nepali ring-shaped rice bread.", emoji: "🍩" },
+      { question: "Red panda is native to?", options: ["Himalayas", "Amazon", "Sahara", "Alps"], correct_index: 0, explanation: "Eastern Himalayas.", emoji: "🐼" },
+      { question: "Which fruit is called 'King of Fruits'?", options: ["Mango", "Apple", "Banana", "Grape"], correct_index: 0, explanation: "Mango.", emoji: "🥭" },
+    ];
   }
   return lang === "ne"
-    ? [{ question: "नेपालको वर्तमान संविधान कहिले जारी भयो?", options: ["२०७२", "२०४७", "२०६३", "२०१५"], correct_index: 0, explanation: "नेपालको संविधान २०७२ असोज ३ गते जारी भएको हो।", emoji: "📜" }]
-    : [{ question: "When was Nepal's current constitution promulgated?", options: ["2015", "1990", "2006", "1959"], correct_index: 0, explanation: "Nepal's current constitution was promulgated in 2015 AD, corresponding to 2072 BS.", emoji: "📜" }];
+    ? [
+        { question: "नेपालको वर्तमान संविधान कहिले जारी भयो?", options: ["२०७२", "२०४७", "२०६३", "२०१५"], correct_index: 0, explanation: "२०७२ असोज ३ गते।", emoji: "📜" },
+        { question: "नेपालको राष्ट्रिय फूल कुन हो?", options: ["लालीगुराँस", "कमल", "सयपत्री", "गुलाब"], correct_index: 0, explanation: "लालीगुराँस।", emoji: "🌺" },
+        { question: "सगरमाथाको उचाइ कति हो?", options: ["८८४८.८६ मि", "८६११ मि", "८५८६ मि", "८१६७ मि"], correct_index: 0, explanation: "८८४८.८६ मिटर।", emoji: "🏔️" },
+        { question: "नेपालमा कति प्रदेश छन्?", options: ["७", "५", "६", "८"], correct_index: 0, explanation: "सात प्रदेश।", emoji: "🗺️" },
+        { question: "नेपालको राष्ट्रिय पंक्षी?", options: ["डाँफे", "मयुर", "चील", "सारस"], correct_index: 0, explanation: "डाँफे।", emoji: "🐦" },
+        { question: "बुद्धको जन्मस्थल?", options: ["लुम्बिनी", "कपिलवस्तु", "पाटन", "जनकपुर"], correct_index: 0, explanation: "लुम्बिनी।", emoji: "☸️" },
+        { question: "नेपालको सबैभन्दा लामो नदी?", options: ["कर्णाली", "कोशी", "गण्डकी", "बागमती"], correct_index: 0, explanation: "कर्णाली।", emoji: "🌊" },
+        { question: "नेपालको राजधानी?", options: ["काठमाडौं", "पोखरा", "ललितपुर", "भक्तपुर"], correct_index: 0, explanation: "काठमाडौं।", emoji: "🏙️" },
+        { question: "SAARC को स्थापना वर्ष?", options: ["१९८५", "१९९०", "१९८०", "१९९५"], correct_index: 0, explanation: "१९८५ ढाकामा।", emoji: "🌏" },
+        { question: "नेपालको राष्ट्रिय खेल?", options: ["दण्डी बियो", "फुटबल", "क्रिकेट", "भलिबल"], correct_index: 3, explanation: "भलिबल (२०७४ देखि)।", emoji: "🏐" },
+      ]
+    : [
+        { question: "When was Nepal's current constitution promulgated?", options: ["2015", "1990", "2006", "1959"], correct_index: 0, explanation: "2015 AD (2072 BS).", emoji: "📜" },
+        { question: "Height of Mount Everest?", options: ["8848.86 m", "8611 m", "8586 m", "8167 m"], correct_index: 0, explanation: "8848.86 metres.", emoji: "🏔️" },
+        { question: "National flower of Nepal?", options: ["Rhododendron", "Lotus", "Marigold", "Rose"], correct_index: 0, explanation: "Laligurans.", emoji: "🌺" },
+        { question: "How many provinces does Nepal have?", options: ["7", "5", "6", "8"], correct_index: 0, explanation: "Seven provinces.", emoji: "🗺️" },
+        { question: "National bird of Nepal?", options: ["Danphe", "Peacock", "Eagle", "Crane"], correct_index: 0, explanation: "Danphe (Himalayan Monal).", emoji: "🐦" },
+        { question: "Birthplace of Gautam Buddha?", options: ["Lumbini", "Kapilvastu", "Patan", "Janakpur"], correct_index: 0, explanation: "Lumbini, Nepal.", emoji: "☸️" },
+        { question: "Longest river of Nepal?", options: ["Karnali", "Koshi", "Gandaki", "Bagmati"], correct_index: 0, explanation: "Karnali.", emoji: "🌊" },
+        { question: "Capital of Nepal?", options: ["Kathmandu", "Pokhara", "Lalitpur", "Bhaktapur"], correct_index: 0, explanation: "Kathmandu.", emoji: "🏙️" },
+        { question: "SAARC was founded in?", options: ["1985", "1990", "1980", "1995"], correct_index: 0, explanation: "1985 in Dhaka.", emoji: "🌏" },
+        { question: "National game of Nepal?", options: ["Dandi Biyo", "Football", "Cricket", "Volleyball"], correct_index: 3, explanation: "Volleyball (since 2017).", emoji: "🏐" },
+      ];
 }
 
 function categoryPrompt(cat: z.infer<typeof Categories>, lang: z.infer<typeof Language>): string {
