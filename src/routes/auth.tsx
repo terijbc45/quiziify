@@ -29,6 +29,7 @@ const schema = z.object({
 function AuthPage() {
   const { user, loading } = useAuth();
   const nav = useNavigate();
+  const { next } = Route.useSearch();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -37,7 +38,12 @@ function AuthPage() {
   const [grade, setGrade] = useState("");
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => { if (!loading && user) nav({ to: "/" }); }, [user, loading, nav]);
+  useEffect(() => {
+    if (!loading && user) {
+      if (next) window.location.href = next;
+      else nav({ to: "/" });
+    }
+  }, [user, loading, nav, next]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
