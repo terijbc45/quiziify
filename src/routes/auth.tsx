@@ -11,7 +11,12 @@ import { Brain, Lock, Mail, Shield, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { GRADES, DEFAULT_COUNTRY } from "@/lib/locale-options";
 
-export const Route = createFileRoute("/auth")({ component: AuthPage });
+export const Route = createFileRoute("/auth")({
+  component: AuthPage,
+  validateSearch: (s: Record<string, unknown>) => ({
+    next: typeof s.next === "string" && s.next.startsWith("/") && !s.next.startsWith("//") ? s.next : undefined,
+  }),
+});
 
 const schema = z.object({
   email: z.string().email("Enter a valid email").max(255),
@@ -24,6 +29,7 @@ const schema = z.object({
 function AuthPage() {
   const { user, loading } = useAuth();
   const nav = useNavigate();
+  const { next } = Route.useSearch();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -32,7 +38,12 @@ function AuthPage() {
   const [grade, setGrade] = useState("");
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => { if (!loading && user) nav({ to: "/" }); }, [user, loading, nav]);
+  useEffect(() => {
+    if (!loading && user) {
+      if (next) window.location.href = next;
+      else nav({ to: "/" });
+    }
+  }, [user, loading, nav, next]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +63,7 @@ function AuthPage() {
           email,
           password,
           options: {
-            emailRedirectTo: window.location.origin,
+            emailRedirectTo: next ? `${window.location.origin}${next}` : window.location.origin,
             data: { display_name: displayName || email.split("@")[0] },
           },
         });
@@ -77,7 +88,7 @@ function AuthPage() {
   const google = async () => {
     setBusy(true);
     try {
-      const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
+      const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: next ? `${window.location.origin}${next}` : window.location.origin });
       if (result.error) throw result.error;
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Google sign-in failed");
