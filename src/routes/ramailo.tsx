@@ -46,6 +46,12 @@ function Ramailo() {
 
       const key = `ramailo:${user.id}:${cat}${langKey}:next`;
       let promise: ReturnType<typeof prefetchRamailo> | undefined = consumeCachedQuiz(key);
+      if (promise) {
+        // If the cached batch is too small (e.g. AI validation fell back), discard and regenerate.
+        const cached = await promise;
+        if (!cached || cached.questions.length < 5) promise = undefined;
+        else promise = Promise.resolve(cached);
+      }
       if (!promise) {
         promise = prefetchRamailo(`ramailo:${user.id}:${cat}${langKey}:${newNonce()}`, {
           count: 12, avoid: seen.slice(-300), nonce: newNonce(), includeLatest, category: cat, model: PRIMARY_MODEL, language: lang,
@@ -59,7 +65,7 @@ function Ramailo() {
       if (r.error) { setError(r.error); setLoading(false); return; }
       const seenSet = new Set(seen);
       const filtered = r.questions.filter((q: QuizQuestion) => !seenSet.has(hashQuestion(q.question)));
-      const qs = (filtered.length >= 3 ? filtered : r.questions) as QuizQuestion[];
+      const qs = (filtered.length >= 5 ? filtered : r.questions) as QuizQuestion[];
       setQuestions(qs);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed");
