@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.is_cdc_admin(uuid) TO authenticated;
