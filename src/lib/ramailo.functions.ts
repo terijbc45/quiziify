@@ -140,99 +140,180 @@ DELIBERATELY rotate across these buckets — never two questions from the same b
 }
 
 
+function normText(s: string): string {
+  return s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+}
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+async function callAI(
+  key: string,
+  model: string,
+  sysPrompt: string,
+  cat: z.infer<typeof Categories>,
+  count: number,
+  temperature: number,
+): Promise<{ questions: RamailoQuestion[]; error: string | null }> {
+  const res = await fetch(GATEWAY, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model,
+      temperature,
+      messages: [
+        { role: "system", content: sysPrompt },
+        { role: "user", content: `Generate exactly ${count} fresh, distinct questions for category "${cat}". Never return fewer than ${count}.` },
+      ],
+      tools: [{
+        type: "function",
+        function: {
+          name: "submit_questions",
+          description: "Return the quiz question set",
+          parameters: {
+            type: "object",
+            properties: {
+              questions: {
+                type: "array",
+                minItems: count,
+                items: {
+                  type: "object",
+                  properties: {
+                    question: { type: "string" },
+                    options: { type: "array", items: { type: "string" }, minItems: 4, maxItems: 4 },
+                    correct_index: { type: "integer", minimum: 0, maximum: 3 },
+                    explanation: { type: "string" },
+                    emoji: { type: "string" },
+                    subject: { type: "string" },
+                    domain: { type: "string" },
+                    country_code: { type: "string" },
+                  },
+                  required: ["question", "options", "correct_index", "explanation", "emoji"],
+                  additionalProperties: false,
+                },
+              },
+            },
+            required: ["questions"],
+            additionalProperties: false,
+          },
+        },
+      }],
+      tool_choice: { type: "function", function: { name: "submit_questions" } },
+    }),
+  });
+
+  if (!res.ok) {
+    if (res.status === 429) return { questions: [], error: "Rate limit reached. Please wait a moment." };
+    if (res.status === 402) return { questions: [], error: "AI credits exhausted." };
+    return { questions: [], error: "AI service error" };
+  }
+
+  const json = await res.json();
+  const args = json.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+  if (!args) return { questions: [], error: "No questions returned" };
+
+  let parsedJson: unknown;
+  try { parsedJson = JSON.parse(args); } catch { return { questions: [], error: "Malformed AI response" }; }
+
+  // Tolerant parse: keep every individually valid question instead of dropping the whole batch.
+  const raw = (parsedJson as { questions?: unknown }).questions;
+  const list = Array.isArray(raw) ? raw : [];
+  const questions: RamailoQuestion[] = [];
+  for (const item of list) {
+    const ok = Question.safeParse(item);
+    if (ok.success) questions.push(ok.data);
+  }
+  return { questions, error: null };
+}
+
 export const generateRamailoQuestions = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
   .inputValidator((input: unknown): RamailoInput => Input.parse(input))
   .handler(async ({ data }) => {
     const key = process.env.LOVABLE_API_KEY;
-    if (!key) return { error: "AI not configured", questions: [] as z.infer<typeof Question>[] };
+    if (!key) return { error: "AI not configured", questions: [] as RamailoQuestion[] };
 
     const cat = data.category ?? "random";
-    const avoidHint = data.avoid && data.avoid.length > 0
-      ? ` HARD RULE — NO REPEATS: You are FORBIDDEN from repeating, paraphrasing, or asking about the same fact as ANY of these previously-shown questions. Produce completely fresh angles, subjects, and facts every batch. Treat this list as poison — steer clear of every subject it names: ${data.avoid.slice(-200).map((q) => `"${q.slice(0, 90)}"`).join("; ")}.`
+    const lang = data.language ?? "en";
+    const want = Math.max(10, Math.min(20, data.count ?? 12));
+    const avoidList = data.avoid ?? [];
+    const avoidSet = new Set(avoidList.map(normText));
+
+    const avoidHint = avoidList.length > 0
+      ? ` HARD RULE — NO REPEATS: You are FORBIDDEN from repeating, paraphrasing, or asking about the same fact/subject as ANY of these previously-shown questions. Produce completely fresh angles, subjects, and facts. Treat this list as poison: ${avoidList.slice(-120).map((q) => `"${q.slice(0, 90)}"`).join("; ")}.`
       : "";
 
     const seed = data.nonce ?? `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
     let latestBlock = "";
     if (data.includeLatest && cat === "random") {
-      const snippets = await fetchLatestSnippets();
-      if (snippets) {
-        latestBlock = `\n\nFor 1-2 of the questions, draw inspiration from these REAL recent headlines (paraphrase, never copy):\n${snippets}`;
-      }
+      try {
+        const snippets = await fetchLatestSnippets();
+        if (snippets) {
+          latestBlock = `\n\nFor 1-2 of the questions, draw inspiration from these REAL recent headlines (paraphrase, never copy):\n${snippets}`;
+        }
+      } catch { /* graceful */ }
     }
 
-    const lang = data.language ?? "en";
     const sysPrompt = `You generate VERY SIMPLE, fun, popular general-knowledge ("Ramailo") MCQs.
 ${categoryPrompt(cat, lang)}
 RULES:
 (1) Question text SHORT — under 100 chars (longer only if a Lok Sewa style fact needs clarity).
 (2) Each of the 4 options must be 1-3 words, never more than 5 words.
 (3) Always include a vivid emoji.
-${cat === "random" ? `(4) Output language: ${lang === "ne" ? "Nepali (Devanagari)" : "English"}. All question text, options, and explanation must be in that language.` : ""}
+(4) Return the FULL requested number of questions — a short batch is a failure.
+${cat === "random" ? `(5) Output language: ${lang === "ne" ? "Nepali (Devanagari)" : "English"}. All question text, options, and explanation must be in that language.` : ""}
 ${avoidHint}${latestBlock}
 
 Variation seed (do not mention): ${seed}.`;
 
     try {
-      const res = await fetch(GATEWAY, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: data.model ?? "google/gemini-2.5-flash",
-          temperature: 1.1,
-          messages: [
-            { role: "system", content: sysPrompt },
-            { role: "user", content: `Generate ${data.count} fresh, distinct questions for category "${cat}".` },
-          ],
-          tools: [{
-            type: "function",
-            function: {
-              name: "submit_questions",
-              description: "Return the quiz question set",
-              parameters: {
-                type: "object",
-                properties: {
-                  questions: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        question: { type: "string" },
-                        options: { type: "array", items: { type: "string" }, minItems: 4, maxItems: 4 },
-                        correct_index: { type: "integer", minimum: 0, maximum: 3 },
-                        explanation: { type: "string" },
-                        emoji: { type: "string" },
-                        subject: { type: "string" },
-                        domain: { type: "string" },
-                        country_code: { type: "string" },
-                      },
-                      required: ["question", "options", "correct_index", "explanation", "emoji"],
-                      additionalProperties: false,
-                    },
-                  },
-                },
-                required: ["questions"],
-                additionalProperties: false,
-              },
-            },
-          }],
-          tool_choice: { type: "function", function: { name: "submit_questions" } },
-        }),
-      });
-      if (!res.ok) {
-        if (res.status === 429) return { error: "Rate limit reached. Please wait a moment.", questions: [] };
-        if (res.status === 402) return { error: "AI credits exhausted.", questions: [] };
-        return { error: "AI service error", questions: [] };
+      const model = data.model ?? "google/gemini-2.5-flash";
+      const collected: RamailoQuestion[] = [];
+      const seenInBatch = new Set<string>();
+      let lastError: string | null = null;
+
+      const absorb = (qs: RamailoQuestion[]) => {
+        for (const q of qs) {
+          const n = normText(q.question);
+          if (!n || seenInBatch.has(n) || avoidSet.has(n)) continue;
+          if (q.options.length !== 4) continue;
+          seenInBatch.add(n);
+          collected.push(q);
+        }
+      };
+
+      const first = await callAI(key, model, sysPrompt, cat, want, 1.1);
+      lastError = first.error;
+      absorb(first.questions);
+
+      // Top-up passes: some models return short batches; keep asking until we have enough.
+      for (let attempt = 0; attempt < 2 && collected.length < 10; attempt++) {
+        const missing = Math.max(6, want - collected.length);
+        const retryPrompt = `${sysPrompt}\n\nAlso avoid these already-generated questions: ${collected.map((q) => `"${q.question.slice(0, 80)}"`).join("; ")}\nRetry seed: ${seed}-${attempt}-${Math.random().toString(36).slice(2, 8)}`;
+        const more = await callAI(key, "google/gemini-2.5-flash", retryPrompt, cat, missing, 1.2);
+        if (more.error) lastError = more.error;
+        absorb(more.questions);
       }
-      const json = await res.json();
-      const args = json.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
-      if (!args) return { error: "No questions returned", questions: [] };
-      const parsedJson = JSON.parse(args);
-      const parsedResult = QuestionSet.safeParse(parsedJson);
-      const parsed = parsedResult.success ? parsedResult.data : { questions: fallbackQuestions(cat, lang) };
+
+      // Last resort: pad from the curated offline pool, skipping anything already shown.
+      if (collected.length < 10) {
+        absorb(shuffle(fallbackQuestions(cat, lang)));
+      }
+
+      if (collected.length === 0) {
+        return { error: lastError ?? "No questions returned", questions: [] as RamailoQuestion[] };
+      }
+
+      const picked = shuffle(collected).slice(0, Math.min(20, Math.max(want, collected.length)));
 
       // Resolve image_url server-side based on category — prefer real internet images via Firecrawl.
-      const enriched = await Promise.all(parsed.questions.map(async (q) => {
+      const enriched = await Promise.all(picked.map(async (q) => {
         let image_url: string | null = q.image_url ?? null;
         try {
           if (cat === "logo" && q.subject) {
@@ -250,11 +331,17 @@ Variation seed (do not mention): ${seed}.`;
         return { ...q, image_url: image_url ?? "" };
       }));
 
-      // Drop image-required questions with no resolved image (logo/places) so player never shows broken thumbs.
-      const final = enriched.filter((q) => (cat === "logo" || cat === "places") ? !!q.image_url : true);
-      return { error: null, questions: final.length > 0 ? final : enriched };
+      // Prefer questions with images for image-first categories, but never drop below 10.
+      if (cat === "logo" || cat === "places") {
+        const withImg = enriched.filter((q) => !!q.image_url);
+        const withoutImg = enriched.filter((q) => !q.image_url);
+        const final = withImg.length >= 10 ? withImg : [...withImg, ...withoutImg];
+        return { error: null, questions: final };
+      }
+      return { error: null, questions: enriched };
     } catch (e) {
       console.error("generateRamailoQuestions error", e);
-      return { error: "Failed to generate questions", questions: [] };
+      return { error: "Failed to generate questions", questions: [] as RamailoQuestion[] };
     }
   });
+
