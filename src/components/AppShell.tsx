@@ -17,7 +17,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (loading) return;
     if (!user) {
-      nav({ to: "/auth" });
+      nav({ to: "/auth", search: { next: undefined } });
       return;
     }
     startReminderEngine(user.id, (r) => setAlarm(r));

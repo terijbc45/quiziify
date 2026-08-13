@@ -143,7 +143,7 @@ function Profile() {
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    nav({ to: "/auth" });
+    nav({ to: "/auth", search: { next: undefined } });
   };
 
   return (
