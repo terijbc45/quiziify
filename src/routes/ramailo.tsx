@@ -34,39 +34,60 @@ function Ramailo() {
 
   const newNonce = () => `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
+  const MIN_QUESTIONS = 10;
+
   const load = async (cat: Cat, lang: Lang) => {
     if (!user) return;
     setLoading(true);
     setError(null);
     setQuestions([]);
     try {
-      const seen = await fetchSeenQuestions(user.id);
       const includeLatest = cat === "random" && Math.random() < 0.6;
       const langKey = cat === "random" ? `:${lang}` : "";
-
-      const key = `ramailo:${user.id}:${cat}${langKey}:next`;
-      let promise: ReturnType<typeof prefetchRamailo> | undefined = consumeCachedQuiz(key);
-      if (promise) {
-        // If the cached batch is too small (e.g. AI validation fell back), discard and regenerate.
-        const cached = await promise;
-        if (!cached || cached.questions.length < 5) promise = undefined;
-        else promise = Promise.resolve(cached);
-      }
-      if (!promise) {
-        promise = prefetchRamailo(`ramailo:${user.id}:${cat}${langKey}:${newNonce()}`, {
-          count: 12, avoid: seen.slice(-300), nonce: newNonce(), includeLatest, category: cat, model: PRIMARY_MODEL, language: lang,
-        });
-      }
-      prefetchRamailo(`ramailo:${user.id}:${cat}${langKey}:next`, {
-        count: 12, avoid: seen.slice(-300), nonce: newNonce(), includeLatest, category: cat, model: SECONDARY_MODEL, language: lang,
-      });
-
-      const r = await promise;
-      if (r.error) { setError(r.error); setLoading(false); return; }
+      const scope = `ramailo:${cat}${langKey}`;
+      const recent = getRecentQuestionTexts(user.id, scope);
+      const seen = await fetchSeenQuestions(user.id);
       const seenSet = new Set(seen);
-      const filtered = r.questions.filter((q: QuizQuestion) => !seenSet.has(hashQuestion(q.question)));
-      const qs = (filtered.length >= 5 ? filtered : r.questions) as QuizQuestion[];
+
+      const nextKey = `${scope}:${user.id}:next`;
+      const baseParams = {
+        count: 14, avoid: recent.slice(-140), includeLatest, category: cat, language: lang,
+      };
+
+      const fetchBatch = (model: string) =>
+        prefetchRamailo(`${scope}:${user.id}:${newNonce()}`, { ...baseParams, nonce: newNonce(), model });
+
+      // Try the pre-warmed batch first, but only if it's actually usable.
+      let batch = await consumeCachedQuiz(nextKey);
+      const usable = (r?: { error: string | null; questions: QuizQuestion[] }) =>
+        !!r && !r.error && r.questions.length >= MIN_QUESTIONS;
+
+      if (!usable(batch)) batch = await fetchBatch(PRIMARY_MODEL);
+      if (!usable(batch)) batch = await fetchBatch(SECONDARY_MODEL);
+
+      if (!batch || (batch.questions.length === 0)) {
+        setError(batch?.error ?? "Couldn't prepare questions. Please try again.");
+        setLoading(false);
+        return;
+      }
+
+      // Drop anything already played; only fall back to the raw batch if that leaves too few.
+      const recentSet = new Set(recent.map((t) => t.trim()));
+      const fresh = batch.questions.filter(
+        (q) => !seenSet.has(hashQuestion(q.question)) && !recentSet.has(q.question.trim()),
+      );
+      const qs = (fresh.length >= MIN_QUESTIONS ? fresh : batch.questions) as QuizQuestion[];
+
       setQuestions(qs);
+      recordRecentQuestionTexts(user.id, scope, qs.map((q) => q.question));
+
+      // Warm the next round in the background using the updated avoid list.
+      prefetchRamailo(nextKey, {
+        ...baseParams,
+        avoid: getRecentQuestionTexts(user.id, scope).slice(-140),
+        nonce: newNonce(),
+        model: PRIMARY_MODEL,
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed");
     } finally {
@@ -93,6 +114,7 @@ function Ramailo() {
   };
 
   const playAgain = async () => { if (category) { setEndPrompt(null); await load(category, language); } };
+
 
   // ----- Picker view -----
   if (!category) {
