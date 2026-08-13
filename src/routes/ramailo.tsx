@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { ArrowLeft, Sparkles, Globe2, Pizza, Building2, BookMarked, Languages } from "lucide-react";
-import { fetchSeenQuestions, hashQuestion, recordSeen, consumeCachedQuiz, prefetchRamailo, PRIMARY_MODEL, SECONDARY_MODEL } from "@/lib/quiz-cache";
+import { fetchSeenQuestions, hashQuestion, recordSeen, consumeCachedQuiz, prefetchRamailo, PRIMARY_MODEL, SECONDARY_MODEL, getRecentQuestionTexts, recordRecentQuestionTexts } from "@/lib/quiz-cache";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/ramailo")({ component: () => <AppShell><Ramailo /></AppShell> });
