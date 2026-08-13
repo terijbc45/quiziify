@@ -39,6 +39,31 @@ export async function recordSeen(
   await supabase.from("seen_questions").upsert(rows, { onConflict: "user_id,question_hash", ignoreDuplicates: true });
 }
 
+// ---- Recent question TEXT memory (browser) ----
+// seen_questions only stores hashes, which are useless as an AI "avoid" list.
+// Keep the last N raw question texts per scope so prompts can truly avoid repeats.
+const RECENT_LIMIT = 160;
+const recentKey = (userId: string, scope: string) => `qz:recent:${userId}:${scope}`;
+
+export function getRecentQuestionTexts(userId: string, scope: string): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(recentKey(userId, scope));
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === "string") : [];
+  } catch { return []; }
+}
+
+export function recordRecentQuestionTexts(userId: string, scope: string, texts: string[]) {
+  if (typeof window === "undefined") return;
+  try {
+    const merged = [...getRecentQuestionTexts(userId, scope), ...texts]
+      .map((t) => t.trim())
+      .filter(Boolean);
+    const deduped = Array.from(new Set(merged)).slice(-RECENT_LIMIT);
+    window.localStorage.setItem(recentKey(userId, scope), JSON.stringify(deduped));
+  } catch { /* storage full / disabled */ }
+
 // Two models to alternate so consecutive rounds get fresh styling and parallelize well.
 export const PRIMARY_MODEL = "google/gemini-2.5-flash";
 export const SECONDARY_MODEL = "google/gemini-2.5-flash-lite";
