@@ -72,7 +72,7 @@ function Ramailo() {
       }
 
       // Drop anything already played; only fall back to the raw batch if that leaves too few.
-      const recentSet = new Set(recent.map((t) => t.trim()));
+      const recentSet = new Set(recent.map((t: string) => t.trim()));
       const fresh = batch.questions.filter(
         (q) => !seenSet.has(hashQuestion(q.question)) && !recentSet.has(q.question.trim()),
       );
