@@ -63,6 +63,9 @@ export function recordRecentQuestionTexts(userId: string, scope: string, texts: 
     const deduped = Array.from(new Set(merged)).slice(-RECENT_LIMIT);
     window.localStorage.setItem(recentKey(userId, scope), JSON.stringify(deduped));
   } catch { /* storage full / disabled */ }
+}
+
+
 
 // Two models to alternate so consecutive rounds get fresh styling and parallelize well.
 export const PRIMARY_MODEL = "google/gemini-2.5-flash";
