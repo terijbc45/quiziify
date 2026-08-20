@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
 import { fetchSubjectImage, fetchChapterImage } from "../server/firecrawl-images.server";
+import { fetchCdcTextbookSource, fetchCdcSubjectEvidence } from "../server/cdc.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
@@ -77,7 +78,7 @@ export const fetchSubjects = createServerFn({ method: "POST" }).middleware([requ
   .inputValidator((input: unknown): SubjectsInput => SubjectsIn.parse(input))
   .handler(async ({ data }) => {
     const optionalsKey = (data.optionals ?? []).map((s) => s.toLowerCase().trim()).sort().join("|");
-    const ck = `subjects:v4:${data.country.toLowerCase()}:${data.grade.toLowerCase()}:${optionalsKey}`;
+    const ck = `subjects:v5:${data.country.toLowerCase()}:${data.grade.toLowerCase()}:${optionalsKey}`;
     const cached = await cacheGet<{ subjects: Subject[] }>(ck);
     if (cached?.subjects?.length) return { subjects: cached.subjects };
 
@@ -85,9 +86,20 @@ export const fetchSubjects = createServerFn({ method: "POST" }).middleware([requ
       ? `\n\nSTUDENT'S CHOSEN OPTIONAL SUBJECTS (MUST include these — the student explicitly studies them): ${data.optionals.join(", ")}. Place them prominently in the list alongside the compulsory subjects for this class.`
       : "";
 
+    // Real CDC evidence: titles of the official textbook / curriculum pages on moecdc.gov.np.
+    const cdcEvidenceKey = `cdc-subject-evidence:v1:${data.grade.toLowerCase()}`;
+    let cdc = await cacheGet<{ titles: string[]; urls: string[] }>(cdcEvidenceKey);
+    if (!cdc?.titles?.length) {
+      cdc = await fetchCdcSubjectEvidence(data.grade).catch(() => ({ titles: [], urls: [] }));
+      if (cdc.titles.length) await cacheSet(cdcEvidenceKey, cdc);
+    }
+    const cdcBlock = cdc?.titles?.length
+      ? `\n\nOFFICIAL CDC (moecdc.gov.np) TEXTBOOK / CURRICULUM PAGE TITLES FOR THIS GRADE — HIGHEST AUTHORITY, prefer these subject names verbatim (translate Nepali titles to their standard English subject name):\n${cdc.titles.map((t) => `- ${t}`).join("\n")}`
+      : "";
+
     const ctx = await firecrawlContext(`Nepal ${data.grade} school subjects CDC curriculum syllabus NEB compulsory optional SEE ${(data.optionals ?? []).join(" ")}`);
     const out = await aiExtract<{ subjects: Subject[] }>(
-      `You list the COMPLETE OFFICIAL school subjects studied in NEPAL for the given grade according to the Nepal Curriculum Development Centre (CDC, Sanothimi Bhaktapur) and the National Examinations Board (NEB, for class 11-12). For class 8-10 you MUST list every standard subject offered for SEE preparation — this typically includes ALL of: Nepali, English, Compulsory Mathematics, Optional Mathematics, Science (Compulsory Science) [class 9-10], Social Studies (Samajik Adhyayan), Health-Population-Environment / Population Studies, Computer Science / Computer Applications, Occupation Business & Technology Education (OBTE), Moral Education, Accountancy / Bookkeeping, Economics, plus any local/optional subject (Sanskrit, regional language). For class 11-12 list the NEB compulsory subjects PLUS the popular faculty groupings (Science: Physics, Chemistry, Biology/Mathematics; Management: Accountancy, Business Studies, Economics, Hotel Management; Humanities: Sociology, Psychology, Political Science, Geography; Education). Output EVERY subject — do NOT cap or omit. Each subject has a single emoji and one-line blurb. Use the provided web context (Nepal CDC / NEB / edusanjal) as ground truth.${optionalsHint}${ctx ? `\n\nWEB CONTEXT:\n${ctx}` : ""}`,
+      `You list the COMPLETE OFFICIAL school subjects studied in NEPAL for the given grade according to the Nepal Curriculum Development Centre (CDC, Sanothimi Bhaktapur) and the National Examinations Board (NEB, for class 11-12). For class 8-10 you MUST list every standard subject offered for SEE preparation — this typically includes ALL of: Nepali, English, Compulsory Mathematics, Optional Mathematics, Science (Compulsory Science) [class 9-10], Social Studies (Samajik Adhyayan), Health-Population-Environment / Population Studies, Computer Science / Computer Applications, Occupation Business & Technology Education (OBTE), Moral Education, Accountancy / Bookkeeping, Economics, plus any local/optional subject (Sanskrit, regional language). For class 11-12 list the NEB compulsory subjects PLUS the popular faculty groupings (Science: Physics, Chemistry, Biology/Mathematics; Management: Accountancy, Business Studies, Economics, Hotel Management; Humanities: Sociology, Psychology, Political Science, Geography; Education). Output EVERY subject — do NOT cap or omit. Each subject has a single emoji and one-line blurb. The CDC page titles below outrank any other source.${cdcBlock}${optionalsHint}${ctx ? `\n\nSECONDARY WEB CONTEXT:\n${ctx}` : ""}`,
       `Country: Nepal\nGrade/Class: ${data.grade}\nList every standard CDC / NEB subject for this class — compulsory AND optional groupings. Do not skip any.${data.optionals?.length ? `\nStudent's optional subjects: ${data.optionals.join(", ")}` : ""}`,
       "submit_subjects",
       {
@@ -125,13 +137,26 @@ type ChaptersInput = z.infer<typeof ChaptersIn>;
 export const fetchChapters = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
   .inputValidator((input: unknown): ChaptersInput => ChaptersIn.parse(input))
   .handler(async ({ data }) => {
-    const ck = `chapters:v2:${data.country.toLowerCase()}:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}`;
-    const cached = await cacheGet<{ chapters: Chapter[]; context: string }>(ck);
+    const ck = `chapters:v3:${data.country.toLowerCase()}:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}`;
+    const cached = await cacheGet<{ chapters: Chapter[]; context: string; source_url?: string | null }>(ck);
     if (cached?.chapters?.length) return cached;
 
-    const ctx = await firecrawlContext(`Nepal ${data.grade} ${data.subject} chapters table of contents syllabus CDC NEB textbook units official curriculum ${data.subject} book`);
+    // PRIMARY SOURCE: the real Table of Contents from the official CDC textbook PDF.
+    const srcKey = `cdc-book:v1:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}`;
+    let src = await cacheGet<{ pageUrl: string | null; pdfUrl: string | null; toc: string }>(srcKey);
+    if (!src?.toc) {
+      src = await fetchCdcTextbookSource(data.grade, data.subject).catch(() => null) as typeof src;
+      if (src?.toc) await cacheSet(srcKey, src);
+    }
+    const tocBlock = src?.toc
+      ? `\n\nOFFICIAL CDC TEXTBOOK EXTRACT (downloaded from ${src.pdfUrl ?? src.pageUrl} — this is the REAL book's front matter and Table of Contents). Use ONLY the unit/chapter titles that appear here, in exactly this order, with the same wording:\n${src.toc.slice(0, 12000)}`
+      : "";
+
+    const ctx = src?.toc
+      ? ""
+      : await firecrawlContext(`Nepal ${data.grade} ${data.subject} chapters table of contents syllabus CDC NEB textbook units official curriculum ${data.subject} book`);
     const out = await aiExtract<{ chapters: Chapter[] }>(
-      `You list the COMPLETE OFFICIAL chapter / unit names of the given subject for the given grade in NEPAL, in textbook order, based on the current Nepal Curriculum Development Centre (CDC) syllabus (class 8-10) or NEB syllabus (class 11-12). ONLY use chapter titles that appear in the actual CDC / NEB approved textbook (Janak Shiksha Samagri Kendra / CDC published book for class 8-10; NEB approved reference for 11-12). Do NOT invent chapters, do NOT translate loosely, and do NOT copy from Indian NCERT or foreign syllabi. Output EVERY chapter — match the real textbook's count exactly (do NOT cap at 10; many NEB books have 12-20 units). Each chapter has a single emoji and a one-line summary reflecting what the textbook actually covers in that unit. Use the provided web context (Nepal CDC / NEB / edusanjal / opencurriculum.gov.np) as authoritative ground truth.${ctx ? `\n\nWEB CONTEXT:\n${ctx}` : ""}`,
+      `You list the COMPLETE OFFICIAL chapter / unit names of the given subject for the given grade in NEPAL, in textbook order, based on the current Nepal Curriculum Development Centre (CDC) textbook (class 8-10) or NEB syllabus (class 11-12). When a CDC TEXTBOOK EXTRACT is provided below, it is the authoritative table of contents scraped directly from the official CDC PDF — copy the unit titles from it verbatim (cleaning OCR noise, page numbers and column labels) and do NOT add, drop, reorder or rename units. Never invent chapters and never use Indian NCERT or other foreign syllabi. Each chapter has a single emoji and a one-line summary of what that unit actually covers.${tocBlock}${ctx ? `\n\nSECONDARY WEB CONTEXT:\n${ctx}` : ""}`,
       `Country: Nepal\nGrade: ${data.grade}\nSubject: ${data.subject}\nList every chapter in textbook order, in full, using the CDC/NEB approved textbook of record.`,
       "submit_chapters",
       {
@@ -155,7 +180,11 @@ export const fetchChapters = createServerFn({ method: "POST" }).middleware([requ
       ...c,
       image_url: await fetchChapterImage(data.subject, c.name).catch(() => null),
     })));
-    const payload = { chapters: enriched, context: ctx.slice(0, 2500) };
+    const payload = {
+      chapters: enriched,
+      context: (src?.toc ? src.toc.slice(0, 2500) : ctx.slice(0, 2500)),
+      source_url: src?.pdfUrl ?? src?.pageUrl ?? null,
+    };
     await cacheSet(ck, payload);
     return payload;
   });
@@ -172,6 +201,13 @@ type CurriculumContextInput = z.infer<typeof CtxIn>;
 export const fetchCurriculumContext = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
   .inputValidator((input: unknown): CurriculumContextInput => CtxIn.parse(input))
   .handler(async ({ data }) => {
+    // Prefer the cached official CDC textbook extract for this grade + subject.
+    const srcKey = `cdc-book:v1:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}`;
+    const src = await cacheGet<{ pageUrl: string | null; pdfUrl: string | null; toc: string }>(srcKey);
+    if (src?.toc) {
+      const chapterHint = data.chapter ? `Chapter of focus: ${data.chapter}\n` : "";
+      return { context: `${chapterHint}OFFICIAL CDC TEXTBOOK EXTRACT (${src.pdfUrl ?? src.pageUrl}):\n${src.toc.slice(0, 2400)}` };
+    }
     const q = data.chapter
       ? `Nepal CDC NEB ${data.grade} ${data.subject} chapter "${data.chapter}" key concepts syllabus`
       : `Nepal CDC NEB ${data.grade} ${data.subject} curriculum key topics syllabus`;
