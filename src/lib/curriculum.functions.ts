@@ -180,7 +180,11 @@ export const fetchChapters = createServerFn({ method: "POST" }).middleware([requ
       ...c,
       image_url: await fetchChapterImage(data.subject, c.name).catch(() => null),
     })));
-    const payload = { chapters: enriched, context: ctx.slice(0, 2500) };
+    const payload = {
+      chapters: enriched,
+      context: (src?.toc ? src.toc.slice(0, 2500) : ctx.slice(0, 2500)),
+      source_url: src?.pdfUrl ?? src?.pageUrl ?? null,
+    };
     await cacheSet(ck, payload);
     return payload;
   });
@@ -197,6 +201,13 @@ type CurriculumContextInput = z.infer<typeof CtxIn>;
 export const fetchCurriculumContext = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
   .inputValidator((input: unknown): CurriculumContextInput => CtxIn.parse(input))
   .handler(async ({ data }) => {
+    // Prefer the cached official CDC textbook extract for this grade + subject.
+    const srcKey = `cdc-book:v1:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}`;
+    const src = await cacheGet<{ pageUrl: string | null; pdfUrl: string | null; toc: string }>(srcKey);
+    if (src?.toc) {
+      const chapterHint = data.chapter ? `Chapter of focus: ${data.chapter}\n` : "";
+      return { context: `${chapterHint}OFFICIAL CDC TEXTBOOK EXTRACT (${src.pdfUrl ?? src.pageUrl}):\n${src.toc.slice(0, 2400)}` };
+    }
     const q = data.chapter
       ? `Nepal CDC NEB ${data.grade} ${data.subject} chapter "${data.chapter}" key concepts syllabus`
       : `Nepal CDC NEB ${data.grade} ${data.subject} curriculum key topics syllabus`;
