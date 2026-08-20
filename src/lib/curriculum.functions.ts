@@ -137,13 +137,26 @@ type ChaptersInput = z.infer<typeof ChaptersIn>;
 export const fetchChapters = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
   .inputValidator((input: unknown): ChaptersInput => ChaptersIn.parse(input))
   .handler(async ({ data }) => {
-    const ck = `chapters:v2:${data.country.toLowerCase()}:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}`;
-    const cached = await cacheGet<{ chapters: Chapter[]; context: string }>(ck);
+    const ck = `chapters:v3:${data.country.toLowerCase()}:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}`;
+    const cached = await cacheGet<{ chapters: Chapter[]; context: string; source_url?: string | null }>(ck);
     if (cached?.chapters?.length) return cached;
 
-    const ctx = await firecrawlContext(`Nepal ${data.grade} ${data.subject} chapters table of contents syllabus CDC NEB textbook units official curriculum ${data.subject} book`);
+    // PRIMARY SOURCE: the real Table of Contents from the official CDC textbook PDF.
+    const srcKey = `cdc-book:v1:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}`;
+    let src = await cacheGet<{ pageUrl: string | null; pdfUrl: string | null; toc: string }>(srcKey);
+    if (!src?.toc) {
+      src = await fetchCdcTextbookSource(data.grade, data.subject).catch(() => null) as typeof src;
+      if (src?.toc) await cacheSet(srcKey, src);
+    }
+    const tocBlock = src?.toc
+      ? `\n\nOFFICIAL CDC TEXTBOOK EXTRACT (downloaded from ${src.pdfUrl ?? src.pageUrl} — this is the REAL book's front matter and Table of Contents). Use ONLY the unit/chapter titles that appear here, in exactly this order, with the same wording:\n${src.toc.slice(0, 12000)}`
+      : "";
+
+    const ctx = src?.toc
+      ? ""
+      : await firecrawlContext(`Nepal ${data.grade} ${data.subject} chapters table of contents syllabus CDC NEB textbook units official curriculum ${data.subject} book`);
     const out = await aiExtract<{ chapters: Chapter[] }>(
-      `You list the COMPLETE OFFICIAL chapter / unit names of the given subject for the given grade in NEPAL, in textbook order, based on the current Nepal Curriculum Development Centre (CDC) syllabus (class 8-10) or NEB syllabus (class 11-12). ONLY use chapter titles that appear in the actual CDC / NEB approved textbook (Janak Shiksha Samagri Kendra / CDC published book for class 8-10; NEB approved reference for 11-12). Do NOT invent chapters, do NOT translate loosely, and do NOT copy from Indian NCERT or foreign syllabi. Output EVERY chapter — match the real textbook's count exactly (do NOT cap at 10; many NEB books have 12-20 units). Each chapter has a single emoji and a one-line summary reflecting what the textbook actually covers in that unit. Use the provided web context (Nepal CDC / NEB / edusanjal / opencurriculum.gov.np) as authoritative ground truth.${ctx ? `\n\nWEB CONTEXT:\n${ctx}` : ""}`,
+      `You list the COMPLETE OFFICIAL chapter / unit names of the given subject for the given grade in NEPAL, in textbook order, based on the current Nepal Curriculum Development Centre (CDC) textbook (class 8-10) or NEB syllabus (class 11-12). When a CDC TEXTBOOK EXTRACT is provided below, it is the authoritative table of contents scraped directly from the official CDC PDF — copy the unit titles from it verbatim (cleaning OCR noise, page numbers and column labels) and do NOT add, drop, reorder or rename units. Never invent chapters and never use Indian NCERT or other foreign syllabi. Each chapter has a single emoji and a one-line summary of what that unit actually covers.${tocBlock}${ctx ? `\n\nSECONDARY WEB CONTEXT:\n${ctx}` : ""}`,
       `Country: Nepal\nGrade: ${data.grade}\nSubject: ${data.subject}\nList every chapter in textbook order, in full, using the CDC/NEB approved textbook of record.`,
       "submit_chapters",
       {
