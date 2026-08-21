@@ -227,12 +227,13 @@ export const fetchCurriculumContext = createServerFn({ method: "POST" }).middlew
   .inputValidator((input: unknown): CurriculumContextInput => CtxIn.parse(input))
   .handler(async ({ data }) => {
     // Prefer the cached official CDC textbook extract for this grade + subject.
-    const srcKey = `cdc-book:v1:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}`;
-    const src = await cacheGet<{ pageUrl: string | null; pdfUrl: string | null; toc: string }>(srcKey);
+    const srcKey = `cdc-book:v2:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}`;
+    const src = await cacheGet<{ pageUrl: string | null; pdfUrl: string | null; toc: string; verified?: boolean }>(srcKey);
     if (src?.toc) {
       const chapterHint = data.chapter ? `Chapter of focus: ${data.chapter}\n` : "";
       return { context: `${chapterHint}OFFICIAL CDC TEXTBOOK EXTRACT (${src.pdfUrl ?? src.pageUrl}):\n${src.toc.slice(0, 2400)}` };
     }
+
     const q = data.chapter
       ? `Nepal CDC NEB ${data.grade} ${data.subject} chapter "${data.chapter}" key concepts syllabus`
       : `Nepal CDC NEB ${data.grade} ${data.subject} curriculum key topics syllabus`;
