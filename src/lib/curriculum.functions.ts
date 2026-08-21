@@ -137,33 +137,45 @@ type ChaptersInput = z.infer<typeof ChaptersIn>;
 export const fetchChapters = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
   .inputValidator((input: unknown): ChaptersInput => ChaptersIn.parse(input))
   .handler(async ({ data }) => {
-    const ck = `chapters:v3:${data.country.toLowerCase()}:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}`;
+    const ck = `chapters:v4:${data.country.toLowerCase()}:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}`;
     const cached = await cacheGet<{ chapters: Chapter[]; context: string; source_url?: string | null }>(ck);
     if (cached?.chapters?.length) return cached;
 
-    // PRIMARY SOURCE: the real Table of Contents from the official CDC textbook PDF.
-    const srcKey = `cdc-book:v1:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}`;
-    let src = await cacheGet<{ pageUrl: string | null; pdfUrl: string | null; toc: string }>(srcKey);
-    if (!src?.toc) {
-      src = await fetchCdcTextbookSource(data.grade, data.subject).catch(() => null) as typeof src;
-      if (src?.toc) await cacheSet(srcKey, src);
+    // ONLY SOURCE: the real Table of Contents from the official CDC textbook PDF.
+    const srcKey = `cdc-book:v2:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}`;
+    type Src = Awaited<ReturnType<typeof fetchCdcTextbookSource>>;
+    let src = await cacheGet<Src>(srcKey);
+    if (!src?.verified) {
+      src = await fetchCdcTextbookSource(data.grade, data.subject).catch(() => null) as Src;
+      if (src?.verified) await cacheSet(srcKey, src);
     }
-    const tocBlock = src?.toc
-      ? `\n\nOFFICIAL CDC TEXTBOOK EXTRACT (downloaded from ${src.pdfUrl ?? src.pageUrl} — this is the REAL book's front matter and Table of Contents). Use ONLY the unit/chapter titles that appear here, in exactly this order, with the same wording:\n${src.toc.slice(0, 12000)}`
-      : "";
 
-    const ctx = src?.toc
-      ? ""
-      : await firecrawlContext(`Nepal ${data.grade} ${data.subject} chapters table of contents syllabus CDC NEB textbook units official curriculum ${data.subject} book`);
+    // No genuine CDC book → never fabricate a syllabus.
+    if (!src?.verified || !src.toc) {
+      return {
+        chapters: [] as Chapter[],
+        context: "",
+        source_url: src?.pageUrl ?? null,
+        verified: false,
+        message: `We couldn't reach the official CDC (moecdc.gov.np) textbook for ${data.subject} · ${data.grade} right now. Chapters are only shown when they come straight from the real CDC book.`,
+      };
+    }
+
+    const tocBlock = `\n\nOFFICIAL CDC TEXTBOOK EXTRACT (downloaded from ${src.pdfUrl ?? src.pageUrl} — this is the REAL book's front matter and Table of Contents). Use ONLY the unit/chapter titles that appear here, in exactly this order, with the same wording:\n${src.toc.slice(0, 12000)}${
+      src.tocChapters.length
+        ? `\n\nUNIT TITLES ALREADY PARSED FROM THAT BOOK (authoritative — keep these, in this order):\n${src.tocChapters.map((c, i) => `${i + 1}. ${c}`).join("\n")}`
+        : ""
+    }`;
+
     const out = await aiExtract<{ chapters: Chapter[] }>(
-      `You list the COMPLETE OFFICIAL chapter / unit names of the given subject for the given grade in NEPAL, in textbook order, based on the current Nepal Curriculum Development Centre (CDC) textbook (class 8-10) or NEB syllabus (class 11-12). When a CDC TEXTBOOK EXTRACT is provided below, it is the authoritative table of contents scraped directly from the official CDC PDF — copy the unit titles from it verbatim (cleaning OCR noise, page numbers and column labels) and do NOT add, drop, reorder or rename units. Never invent chapters and never use Indian NCERT or other foreign syllabi. Each chapter has a single emoji and a one-line summary of what that unit actually covers.${tocBlock}${ctx ? `\n\nSECONDARY WEB CONTEXT:\n${ctx}` : ""}`,
-      `Country: Nepal\nGrade: ${data.grade}\nSubject: ${data.subject}\nList every chapter in textbook order, in full, using the CDC/NEB approved textbook of record.`,
+      `You transcribe the chapter / unit list of an OFFICIAL Nepal Curriculum Development Centre (CDC) textbook from an extract of the real book. Copy the unit titles verbatim from the extract (cleaning OCR noise, page numbers and column labels), keep the book's order, and do NOT add, drop, reorder or rename units. Never invent a chapter and never use Indian NCERT or any foreign syllabus — if the extract only shows N units, return exactly those N. Each chapter gets a single emoji and a one-line summary of what that unit actually covers.${tocBlock}`,
+      `Country: Nepal\nGrade: ${data.grade}\nSubject: ${data.subject}\nBook page: ${src.pageTitle ?? src.pageUrl}\nTranscribe every chapter from the extract, in book order.`,
       "submit_chapters",
       {
         type: "object",
         properties: {
           chapters: {
-            type: "array", minItems: 4, maxItems: 30,
+            type: "array", minItems: 1, maxItems: 30,
             items: {
               type: "object",
               properties: { name: { type: "string" }, emoji: { type: "string" }, summary: { type: "string" } },
@@ -174,20 +186,33 @@ export const fetchChapters = createServerFn({ method: "POST" }).middleware([requ
         required: ["chapters"], additionalProperties: false,
       },
     );
-    if (!out?.chapters?.length) return { chapters: [] as Chapter[], context: "" };
 
-    const enriched = await Promise.all(out.chapters.map(async (c) => ({
+    const base: Chapter[] = out?.chapters?.length
+      ? out.chapters
+      : src.tocChapters.map((name) => ({ name, emoji: "📘", summary: "" }));
+    if (!base.length) {
+      return {
+        chapters: [] as Chapter[], context: src.toc.slice(0, 2500),
+        source_url: src.pdfUrl ?? src.pageUrl, verified: false,
+        message: "The official CDC book was found but its contents page could not be read. Please try again.",
+      };
+    }
+
+    const enriched = await Promise.all(base.map(async (c) => ({
       ...c,
       image_url: await fetchChapterImage(data.subject, c.name).catch(() => null),
     })));
     const payload = {
       chapters: enriched,
-      context: (src?.toc ? src.toc.slice(0, 2500) : ctx.slice(0, 2500)),
-      source_url: src?.pdfUrl ?? src?.pageUrl ?? null,
+      context: src.toc.slice(0, 2500),
+      source_url: src.pdfUrl ?? src.pageUrl,
+      source_title: src.pageTitle,
+      verified: true,
     };
     await cacheSet(ck, payload);
     return payload;
   });
+
 
 // ---------- Curriculum context (used to ground quiz questions) ----------
 const CtxIn = z.object({
