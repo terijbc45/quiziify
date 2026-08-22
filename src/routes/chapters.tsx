@@ -67,15 +67,33 @@ function Chapters() {
   }, [user, country, grade]);
 
   // Load chapters when subject picked
+  const [reloadKey, setReloadKey] = useState(0);
   useEffect(() => {
     if (!subject || !country || !grade) return;
+    let cancelled = false;
     setLoadingChapters(true);
-    fetchChapters({ data: { country, grade, subject } }).then((r: { chapters?: Chapter[]; context?: string }) => {
-      setChapters(r.chapters ?? []);
-      setChapterCtx(r.context ?? "");
-      setLoadingChapters(false);
-    }).catch(() => setLoadingChapters(false));
-  }, [subject, country, grade]);
+    setSource(null);
+    fetchChapters({ data: { country, grade, subject } })
+      .then((r: { chapters?: Chapter[]; context?: string; verified?: boolean; message?: string; source_url?: string | null; source_title?: string | null }) => {
+        if (cancelled) return;
+        setChapters(r.chapters ?? []);
+        setChapterCtx(r.context ?? "");
+        setSource({
+          verified: r.verified !== false && (r.chapters?.length ?? 0) > 0,
+          message: r.message,
+          url: r.source_url ?? null,
+          title: r.source_title ?? null,
+        });
+        setLoadingChapters(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setSource({ verified: false, message: "Couldn't reach the official CDC library. Please try again." });
+        setLoadingChapters(false);
+      });
+    return () => { cancelled = true; };
+  }, [subject, country, grade, reloadKey]);
+
 
   const newNonce = () => `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
