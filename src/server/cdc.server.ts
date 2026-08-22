@@ -307,3 +307,129 @@ export async function fetchCdcSubjectEvidence(grade: string): Promise<{ titles: 
   };
 }
 
+
+// ---------------------------------------------------------------------------
+// Trusted Nepali publishers (Asmita, Ekta, Buddha, Sajha, ...) — used as a
+// second real source when the CDC PDF cannot be reached. Chapter lists still
+// come from a published book's contents page, never from the model's memory.
+// ---------------------------------------------------------------------------
+
+const PUBLISHERS: { domain: string; name: string }[] = [
+  { domain: "asmitaonline.com", name: "Asmita Publication" },
+  { domain: "asmitabooks.com", name: "Asmita Publication" },
+  { domain: "ektabooks.com", name: "Ekta Books" },
+  { domain: "buddhapublication.com", name: "Buddha Publication" },
+  { domain: "sajhapublication.com", name: "Sajha Prakashan" },
+  { domain: "vidyarthipustak.com", name: "Vidyarthi Pustak Bhandar" },
+  { domain: "heritagepublishershouse.com", name: "Heritage Publishers" },
+];
+
+export type SearchHit = { url: string; title?: string; description?: string; markdown?: string; image?: string | null };
+
+async function firecrawlSearch(query: string, limit = 6, scrape = true): Promise<SearchHit[]> {
+  const key = process.env["FIRECRAWL_API_KEY"];
+  if (!key) return [];
+  try {
+    const res = await fetch(`${FIRECRAWL}/search`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query,
+        limit,
+        ...(scrape ? { scrapeOptions: { formats: ["markdown"], onlyMainContent: true } } : {}),
+      }),
+    });
+    if (!res.ok) return [];
+    const json = await res.json();
+    const items = json?.data?.web ?? json?.data ?? [];
+    return (Array.isArray(items) ? items : []).map((i: Record<string, unknown>) => ({
+      url: String(i["url"] ?? ""),
+      title: (i["title"] as string) ?? "",
+      description: (i["description"] as string) ?? "",
+      markdown: (i["markdown"] as string) ?? "",
+      image: (i["imageUrl"] as string) ?? ((i["metadata"] as Record<string, string>)?.["ogImage"] ?? null),
+    })).filter((h: SearchHit) => !!h.url);
+  } catch {
+    return [];
+  }
+}
+
+/** Pick the book-cover image out of a scraped page's raw HTML. */
+export function coverFromHtml(html: string, pageUrl: string): string | null {
+  const og = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)?.[1];
+  const abs = (u: string) => {
+    try { return new URL(u, pageUrl).toString(); } catch { return null; }
+  };
+  if (og && IMAGE_EXT.test(og)) return abs(og);
+  const imgs = [...html.matchAll(/<img[^>]+src=["']([^"']+)["'][^>]*>/gi)].map((m) => m[1]!);
+  const scored = imgs
+    .filter((u) => IMAGE_EXT.test(u) && !/logo|icon|sprite|banner|avatar|placeholder|flag/i.test(u))
+    .sort((a, b) => coverScore(b) - coverScore(a));
+  return scored[0] ? abs(scored[0]) : (og ? abs(og) : null);
+}
+const IMAGE_EXT = /\.(png|jpe?g|webp)(\?|$)/i;
+function coverScore(url: string): number {
+  let s = 0;
+  if (/cover|thumb|book|पुस्तक/i.test(url)) s += 4;
+  if (/upload|media|product|image/i.test(url)) s += 2;
+  return s;
+}
+
+/** Chapter list from a trusted publisher's book page (contents / index section). */
+export async function fetchPublisherTextbookSource(
+  grade: string,
+  subject: string,
+): Promise<CdcSource & { publisher: string | null; coverUrl: string | null }> {
+  const num = gradeNumber(grade) ?? grade;
+  const sites = PUBLISHERS.map((p) => `site:${p.domain}`).join(" OR ");
+  const hits = await firecrawlSearch(
+    `${subject} class ${num} Nepal textbook table of contents chapters ${sites}`,
+    8,
+  );
+  for (const h of hits) {
+    const hay = `${h.title ?? ""} ${decodeURIComponent(h.url)}`.toLowerCase();
+    if (REJECT_DOC.test(hay)) continue;
+    if (!hasGradeToken(hay, grade) && !hasGradeToken((h.markdown ?? "").slice(0, 2000).toLowerCase(), grade)) continue;
+    if (!hasSubject(hay, subject) && !hasSubject((h.markdown ?? "").slice(0, 2000).toLowerCase(), subject)) continue;
+    const md = h.markdown ?? "";
+    if (!looksLikeToc(md)) continue;
+    const chapters = parseTocChapters(md);
+    if (chapters.length < 3) continue;
+    const pub = PUBLISHERS.find((p) => h.url.includes(p.domain));
+    let cover = h.image ?? null;
+    if (!cover) {
+      const html = await firecrawlRawHtml(h.url);
+      cover = html ? coverFromHtml(html, h.url) : null;
+    }
+    return {
+      pageUrl: h.url,
+      pageTitle: h.title ?? null,
+      pdfUrl: null,
+      toc: md.slice(0, 14000),
+      tocChapters: chapters,
+      verified: true,
+      publisher: pub?.name ?? null,
+      coverUrl: cover,
+    };
+  }
+  return { ...EMPTY_SOURCE, publisher: null, coverUrl: null };
+}
+
+/** Real cover thumbnail for a grade + subject book from CDC or a trusted publisher. */
+export async function fetchBookCoverUrl(grade: string, subject: string): Promise<string | null> {
+  const num = gradeNumber(grade) ?? grade;
+  const hits = await firecrawlSearch(
+    `${subject} class ${num} Nepal textbook book cover ${PUBLISHERS.slice(0, 4).map((p) => `site:${p.domain}`).join(" OR ")}`,
+    6,
+    false,
+  );
+  for (const h of hits) {
+    if (h.image && /^https?:\/\//.test(h.image)) return h.image;
+  }
+  for (const h of hits.slice(0, 2)) {
+    const html = await firecrawlRawHtml(h.url);
+    const cover = html ? coverFromHtml(html, h.url) : null;
+    if (cover) return cover;
+  }
+  return null;
+}
