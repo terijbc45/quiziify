@@ -36,6 +36,8 @@ function Chapters() {
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [chapterCtx, setChapterCtx] = useState<string>("");
   const [loadingChapters, setLoadingChapters] = useState(false);
+  const [source, setSource] = useState<{ verified: boolean; message?: string; url?: string | null; title?: string | null } | null>(null);
+
 
   const [progress, setProgress] = useState<Set<string>>(new Set());
 
