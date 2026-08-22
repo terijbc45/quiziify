@@ -170,7 +170,7 @@ function Chapters() {
   };
 
   const backToChapters = () => { setActiveChapter(null); setQuestions([]); setPostQuiz(null); setError(null); };
-  const backToSubjects = () => { setSubject(null); setChapters([]); setChapterCtx(""); backToChapters(); };
+  const backToSubjects = () => { setSubject(null); setChapters([]); setChapterCtx(""); setSource(null); backToChapters(); };
 
   // ---------- Render ----------
   if (profLoading) return <BrainLoader label="Loading your profile" />;
