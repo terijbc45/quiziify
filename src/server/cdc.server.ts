@@ -297,10 +297,13 @@ export async function fetchCdcSubjectEvidence(grade: string): Promise<{ titles: 
   const keep = links.filter((l) => {
     const hay = `${l.title ?? ""} ${decodeURIComponent(l.url)}`.toLowerCase();
     if (REJECT_DOC.test(hay)) return false;
-    return hasGradeToken(hay, grade);
+    if (!hasGradeToken(hay, grade)) return false;
+    // Only genuine textbook / curriculum pages count as evidence.
+    return /पाठ्यपुस्तक|पाठ्यक्रम|textbook|curriculum|book|\/content\//i.test(hay);
   });
   return {
     titles: [...new Set(keep.map((l) => (l.title ?? "").trim()).filter(Boolean))].slice(0, 40),
     urls: keep.map((l) => l.url).slice(0, 40),
   };
 }
+

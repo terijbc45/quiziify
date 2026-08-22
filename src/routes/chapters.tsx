@@ -36,6 +36,8 @@ function Chapters() {
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [chapterCtx, setChapterCtx] = useState<string>("");
   const [loadingChapters, setLoadingChapters] = useState(false);
+  const [source, setSource] = useState<{ verified: boolean; message?: string; url?: string | null; title?: string | null } | null>(null);
+
 
   const [progress, setProgress] = useState<Set<string>>(new Set());
 
@@ -65,15 +67,33 @@ function Chapters() {
   }, [user, country, grade]);
 
   // Load chapters when subject picked
+  const [reloadKey, setReloadKey] = useState(0);
   useEffect(() => {
     if (!subject || !country || !grade) return;
+    let cancelled = false;
     setLoadingChapters(true);
-    fetchChapters({ data: { country, grade, subject } }).then((r: { chapters?: Chapter[]; context?: string }) => {
-      setChapters(r.chapters ?? []);
-      setChapterCtx(r.context ?? "");
-      setLoadingChapters(false);
-    }).catch(() => setLoadingChapters(false));
-  }, [subject, country, grade]);
+    setSource(null);
+    fetchChapters({ data: { country, grade, subject } })
+      .then((r: { chapters?: Chapter[]; context?: string; verified?: boolean; message?: string; source_url?: string | null; source_title?: string | null }) => {
+        if (cancelled) return;
+        setChapters(r.chapters ?? []);
+        setChapterCtx(r.context ?? "");
+        setSource({
+          verified: r.verified !== false && (r.chapters?.length ?? 0) > 0,
+          message: r.message,
+          url: r.source_url ?? null,
+          title: r.source_title ?? null,
+        });
+        setLoadingChapters(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setSource({ verified: false, message: "Couldn't reach the official CDC library. Please try again." });
+        setLoadingChapters(false);
+      });
+    return () => { cancelled = true; };
+  }, [subject, country, grade, reloadKey]);
+
 
   const newNonce = () => `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
@@ -150,7 +170,7 @@ function Chapters() {
   };
 
   const backToChapters = () => { setActiveChapter(null); setQuestions([]); setPostQuiz(null); setError(null); };
-  const backToSubjects = () => { setSubject(null); setChapters([]); setChapterCtx(""); backToChapters(); };
+  const backToSubjects = () => { setSubject(null); setChapters([]); setChapterCtx(""); setSource(null); backToChapters(); };
 
   // ---------- Render ----------
   if (profLoading) return <BrainLoader label="Loading your profile" />;
@@ -232,12 +252,39 @@ function Chapters() {
         </div>
 
         {loadingChapters ? (
-          <BrainLoader label="Loading chapters" />
+          <BrainLoader label="Fetching the official CDC textbook" />
         ) : chapters.length === 0 ? (
-          <div className="rounded-3xl bg-card p-8 text-center border border-border">
-            <p className="text-muted-foreground">No chapters available right now.</p>
+          <div className="rounded-3xl bg-card p-8 text-center border border-border space-y-4">
+            <BookOpen className="h-10 w-10 mx-auto text-primary" />
+            <p className="text-muted-foreground text-sm">
+              {source?.message ??
+                `We couldn't reach the official CDC textbook for ${subject} · ${gradeLabel(grade)} right now. Chapters are only shown when they come straight from the real CDC book.`}
+            </p>
+            <div className="flex gap-2 justify-center flex-wrap">
+              <Button onClick={() => setReloadKey((k) => k + 1)} className="rounded-full bg-gradient-hero">
+                <RotateCcw className="h-4 w-4 mr-1" /> Try again
+              </Button>
+              {source?.url && (
+                <a href={source.url} target="_blank" rel="noopener noreferrer">
+                  <Button variant="outline" className="rounded-full">Open CDC page</Button>
+                </a>
+              )}
+            </div>
           </div>
         ) : (
+          <>
+          {source?.verified && (
+            <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+              <Check className="h-3.5 w-3.5 text-success" />
+              <span>From the official CDC textbook</span>
+              {source.url && (
+                <a href={source.url} target="_blank" rel="noopener noreferrer" className="text-primary font-medium underline">
+                  {source.title ? source.title.slice(0, 40) : "view source"}
+                </a>
+              )}
+            </div>
+          )}
+
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {chapters.map((c, i) => {
               const done = progress.has(`${subject}::${c.name}`);
@@ -269,8 +316,9 @@ function Chapters() {
               );
             })}
           </div>
-
+          </>
         )}
+
       </div>
     );
   }
