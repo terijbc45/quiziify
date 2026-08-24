@@ -2,7 +2,12 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
 import { fetchSubjectImage, fetchChapterImage } from "../server/firecrawl-images.server";
-import { fetchCdcTextbookSource, fetchCdcSubjectEvidence } from "../server/cdc.server";
+import {
+  fetchCdcTextbookSource,
+  fetchCdcSubjectEvidence,
+  fetchPublisherTextbookSource,
+  fetchBookCoverUrl,
+} from "../server/cdc.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
