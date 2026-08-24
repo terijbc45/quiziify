@@ -249,7 +249,7 @@ export const fetchCurriculumContext = createServerFn({ method: "POST" }).middlew
   .inputValidator((input: unknown): CurriculumContextInput => CtxIn.parse(input))
   .handler(async ({ data }) => {
     // Prefer the cached official CDC textbook extract for this grade + subject.
-    const srcKey = `cdc-book:v2:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}`;
+    const srcKey = `cdc-book:v3:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}`;
     const src = await cacheGet<{ pageUrl: string | null; pdfUrl: string | null; toc: string; verified?: boolean }>(srcKey);
     if (src?.toc) {
       const chapterHint = data.chapter ? `Chapter of focus: ${data.chapter}\n` : "";
