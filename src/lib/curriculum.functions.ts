@@ -142,17 +142,32 @@ type ChaptersInput = z.infer<typeof ChaptersIn>;
 export const fetchChapters = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
   .inputValidator((input: unknown): ChaptersInput => ChaptersIn.parse(input))
   .handler(async ({ data }) => {
-    const ck = `chapters:v4:${data.country.toLowerCase()}:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}`;
+    const ck = `chapters:v5:${data.country.toLowerCase()}:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}`;
     const cached = await cacheGet<{ chapters: Chapter[]; context: string; source_url?: string | null }>(ck);
     if (cached?.chapters?.length) return cached;
 
-    // ONLY SOURCE: the real Table of Contents from the official CDC textbook PDF.
-    const srcKey = `cdc-book:v2:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}`;
-    type Src = Awaited<ReturnType<typeof fetchCdcTextbookSource>>;
+    // REAL SOURCES ONLY: (1) the official CDC textbook PDF's Table of Contents,
+    // (2) a trusted Nepali publisher's printed book contents page (Asmita, Ekta, ...).
+    const srcKey = `cdc-book:v3:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}`;
+    type Src = Awaited<ReturnType<typeof fetchCdcTextbookSource>> & {
+      publisher?: string | null;
+      coverUrl?: string | null;
+    };
     let src = await cacheGet<Src>(srcKey);
     if (!src?.verified) {
-      src = await fetchCdcTextbookSource(data.grade, data.subject).catch(() => null) as Src;
-      if (src?.verified) await cacheSet(srcKey, src);
+      const cdc = await fetchCdcTextbookSource(data.grade, data.subject).catch(() => null);
+      if (cdc?.verified) {
+        src = { ...cdc, publisher: "Curriculum Development Centre, Nepal", coverUrl: null };
+      } else {
+        const pub = await fetchPublisherTextbookSource(data.grade, data.subject).catch(() => null);
+        src = pub?.verified ? pub : (cdc as Src | null);
+      }
+      if (src?.verified) {
+        if (!src.coverUrl) {
+          src.coverUrl = await fetchBookCoverUrl(data.grade, data.subject).catch(() => null);
+        }
+        await cacheSet(srcKey, src);
+      }
     }
 
     // No genuine CDC book → never fabricate a syllabus.
