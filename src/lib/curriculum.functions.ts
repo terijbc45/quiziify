@@ -227,6 +227,8 @@ export const fetchChapters = createServerFn({ method: "POST" }).middleware([requ
       context: src.toc.slice(0, 2500),
       source_url: src.pdfUrl ?? src.pageUrl,
       source_title: src.pageTitle,
+      publisher: src.publisher ?? null,
+      cover_url: src.coverUrl ?? null,
       verified: true,
     };
     await cacheSet(ck, payload);
