@@ -142,9 +142,10 @@ type ChaptersInput = z.infer<typeof ChaptersIn>;
 export const fetchChapters = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
   .inputValidator((input: unknown): ChaptersInput => ChaptersIn.parse(input))
   .handler(async ({ data }) => {
-    const ck = `chapters:v5:${data.country.toLowerCase()}:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}`;
+    const ck = `chapters:v6:${data.country.toLowerCase()}:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}`;
     const cached = await cacheGet<{ chapters: Chapter[]; context: string; source_url?: string | null }>(ck);
     if (cached?.chapters?.length) return cached;
+
 
     // REAL SOURCES ONLY: (1) the official CDC textbook PDF's Table of Contents,
     // (2) a trusted Nepali publisher's printed book contents page (Asmita, Ekta, ...).
