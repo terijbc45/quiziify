@@ -342,12 +342,42 @@ function Chapters() {
         <Button variant="ghost" size="sm" onClick={backToSubjects} className="rounded-full">
           <ArrowLeft className="h-4 w-4 mr-1" /> Subjects
         </Button>
-        <div className="rounded-3xl bg-gradient-hero p-6 text-white shadow-glow text-center relative overflow-hidden">
+        <div className="rounded-3xl bg-gradient-hero p-6 text-white shadow-glow relative overflow-hidden">
           <div className="absolute -top-8 -right-8 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
-          <p className="text-white/80 text-sm relative">{countryMeta?.flag} {gradeLabel(grade)} · {subject}</p>
-          <p className="text-3xl font-bold relative">Chapters</p>
-          <p className="text-white/80 text-xs mt-2 relative">Tap a chapter to start its quiz</p>
+          <div className="relative flex items-center gap-4">
+            {source?.cover ? (
+              <img src={source.cover} alt={`${subject} textbook cover`}
+                className="h-24 w-[70px] rounded-lg object-cover shadow-lg ring-2 ring-white/30 shrink-0" />
+            ) : (
+              <div className="h-24 w-[70px] rounded-lg bg-white/15 flex items-center justify-center shrink-0">
+                <BookOpen className="h-7 w-7" />
+              </div>
+            )}
+            <div className="min-w-0">
+              <p className="text-white/80 text-xs">{countryMeta?.flag} {gradeLabel(grade)} · {subject}</p>
+              <p className="text-2xl font-bold leading-tight">Chapters</p>
+              {source?.publisher && (
+                <p className="text-white/80 text-xs mt-1 truncate">{source.publisher}</p>
+              )}
+              <p className="text-white/70 text-[11px] mt-1">Tap a chapter for quiz, flashcards or a podcast</p>
+            </div>
+          </div>
         </div>
+
+        <div className="flex items-center justify-center gap-2">
+          {(["en", "ne"] as const).map((l) => (
+            <button
+              key={l}
+              onClick={() => setLang(l)}
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                lang === l ? "bg-gradient-hero text-white border-transparent shadow-soft" : "bg-card text-muted-foreground border-border"
+              }`}
+            >
+              {l === "en" ? "English" : "नेपाली"}
+            </button>
+          ))}
+        </div>
+
 
         {loadingChapters ? (
           <BrainLoader label="Fetching the official CDC textbook" />
