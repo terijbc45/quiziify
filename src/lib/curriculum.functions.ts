@@ -142,9 +142,10 @@ type ChaptersInput = z.infer<typeof ChaptersIn>;
 export const fetchChapters = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
   .inputValidator((input: unknown): ChaptersInput => ChaptersIn.parse(input))
   .handler(async ({ data }) => {
-    const ck = `chapters:v5:${data.country.toLowerCase()}:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}`;
+    const ck = `chapters:v6:${data.country.toLowerCase()}:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}`;
     const cached = await cacheGet<{ chapters: Chapter[]; context: string; source_url?: string | null }>(ck);
     if (cached?.chapters?.length) return cached;
+
 
     // REAL SOURCES ONLY: (1) the official CDC textbook PDF's Table of Contents,
     // (2) a trusted Nepali publisher's printed book contents page (Asmita, Ekta, ...).
@@ -207,9 +208,22 @@ export const fetchChapters = createServerFn({ method: "POST" }).middleware([requ
       },
     );
 
-    const base: Chapter[] = out?.chapters?.length
-      ? out.chapters
-      : src.tocChapters.map((name) => ({ name, emoji: "📘", summary: "" }));
+    // The unit titles parsed straight out of the real book are the source of truth.
+    // The model is only allowed to supply the emoji + one-line summary for them.
+    const aiChapters = out?.chapters ?? [];
+    const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9\u0900-\u097F]+/g, " ").trim();
+    const base: Chapter[] =
+      src.tocChapters.length >= 4
+        ? src.tocChapters.map((name) => {
+            const m =
+              aiChapters.find((c) => norm(c.name) === norm(name)) ??
+              aiChapters.find((c) => norm(c.name).includes(norm(name)) || norm(name).includes(norm(c.name)));
+            return { name, emoji: m?.emoji || "📘", summary: m?.summary ?? "" };
+          })
+        : aiChapters.length
+          ? aiChapters
+          : src.tocChapters.map((name) => ({ name, emoji: "📘", summary: "" }));
+
     if (!base.length) {
       return {
         chapters: [] as Chapter[], context: src.toc.slice(0, 2500),

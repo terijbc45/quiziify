@@ -75,7 +75,7 @@ export const generatePodcast = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const lang = data.language ?? "en";
     const ck = `podcast:v1:${lang}:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}:${data.chapter.toLowerCase()}`;
-    const cached = await cacheGet<{ title: string; lines: PodcastLine[] }>(ck);
+    const cached = await cacheGet<{ title: string; summary?: string; lines: PodcastLine[] }>(ck);
     if (cached?.lines?.length) return cached;
 
     const src = await bookExtract(data.grade, data.subject);

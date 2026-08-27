@@ -3,15 +3,19 @@ import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { QuizPlayer, type QuizQuestion } from "@/components/QuizPlayer";
 import { BrainLoader } from "@/components/BrainLoader";
+import { Flashcards } from "@/components/Flashcards";
+import { PodcastPlayer } from "@/components/PodcastPlayer";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { useProfile } from "@/hooks/useProfile";
-import { ArrowLeft, ArrowRight, BookOpen, Check, RotateCcw, Trophy, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, Check, Headphones, Layers, RotateCcw, Trophy, Sparkles, Play } from "lucide-react";
 import { toast } from "sonner";
 import { consumeCachedQuiz, fetchSeenQuestions, hashQuestion, prefetchQuiz, recordSeen, PRIMARY_MODEL, SECONDARY_MODEL } from "@/lib/quiz-cache";
 import { fetchSubjects, fetchChapters } from "@/lib/curriculum.functions";
+import { generateFlashcards, generatePodcast, type Flashcard, type PodcastLine } from "@/lib/study.functions";
 import { countryByCode, gradeLabel } from "@/lib/locale-options";
+
 
 export const Route = createFileRoute("/chapters")({ component: () => <AppShell><Chapters /></AppShell> });
 
@@ -36,16 +40,34 @@ function Chapters() {
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [chapterCtx, setChapterCtx] = useState<string>("");
   const [loadingChapters, setLoadingChapters] = useState(false);
-  const [source, setSource] = useState<{ verified: boolean; message?: string; url?: string | null; title?: string | null } | null>(null);
+  const [source, setSource] = useState<{
+    verified: boolean; message?: string; url?: string | null; title?: string | null;
+    publisher?: string | null; cover?: string | null;
+  } | null>(null);
 
 
   const [progress, setProgress] = useState<Set<string>>(new Set());
+
+  // Chapter detail sheet + which study tool is open
+  const [detail, setDetail] = useState<Chapter | null>(null);
+  const [lang, setLang] = useState<"en" | "ne">("en");
 
   const [activeChapter, setActiveChapter] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [postQuiz, setPostQuiz] = useState<null | { score: number; total: number; chapter: string }>(null);
+
+  const [cardsChapter, setCardsChapter] = useState<string | null>(null);
+  const [cards, setCards] = useState<Flashcard[]>([]);
+  const [cardsLoading, setCardsLoading] = useState(false);
+  const [cardsError, setCardsError] = useState<string | null>(null);
+
+  const [podChapter, setPodChapter] = useState<string | null>(null);
+  const [pod, setPod] = useState<{ title: string; summary?: string; lines: PodcastLine[] } | null>(null);
+  const [podLoading, setPodLoading] = useState(false);
+  const [podError, setPodError] = useState<string | null>(null);
+
 
   // Load subjects
   useEffect(() => {
@@ -74,7 +96,7 @@ function Chapters() {
     setLoadingChapters(true);
     setSource(null);
     fetchChapters({ data: { country, grade, subject } })
-      .then((r: { chapters?: Chapter[]; context?: string; verified?: boolean; message?: string; source_url?: string | null; source_title?: string | null }) => {
+      .then((r: { chapters?: Chapter[]; context?: string; verified?: boolean; message?: string; source_url?: string | null; source_title?: string | null; publisher?: string | null; cover_url?: string | null }) => {
         if (cancelled) return;
         setChapters(r.chapters ?? []);
         setChapterCtx(r.context ?? "");
@@ -83,9 +105,12 @@ function Chapters() {
           message: r.message,
           url: r.source_url ?? null,
           title: r.source_title ?? null,
+          publisher: r.publisher ?? null,
+          cover: r.cover_url ?? null,
         });
         setLoadingChapters(false);
       })
+
       .catch(() => {
         if (cancelled) return;
         setSource({ verified: false, message: "Couldn't reach the official CDC library. Please try again." });
@@ -169,8 +194,42 @@ function Chapters() {
     toast.success("Progress reset");
   };
 
-  const backToChapters = () => { setActiveChapter(null); setQuestions([]); setPostQuiz(null); setError(null); };
+  const openFlashcards = async (chapterName: string) => {
+    if (!grade || !subject) return;
+    setCardsChapter(chapterName);
+    setCards([]);
+    setCardsError(null);
+    setCardsLoading(true);
+    try {
+      const r = await generateFlashcards({ data: { grade, subject, chapter: chapterName, language: lang } });
+      setCards(r.cards ?? []);
+    } catch (e) {
+      setCardsError(e instanceof Error ? e.message : "Couldn't build flashcards.");
+    } finally { setCardsLoading(false); }
+  };
+
+  const openPodcast = async (chapterName: string) => {
+    if (!grade || !subject) return;
+    setPodChapter(chapterName);
+    setPod(null);
+    setPodError(null);
+    setPodLoading(true);
+    try {
+      const r = await generatePodcast({ data: { grade, subject, chapter: chapterName, language: lang } });
+      setPod({ title: r.title, summary: r.summary, lines: r.lines ?? [] });
+    } catch (e) {
+      setPodError(e instanceof Error ? e.message : "Couldn't record this episode.");
+    } finally { setPodLoading(false); }
+  };
+
+  const backToChapters = () => {
+    setActiveChapter(null); setQuestions([]); setPostQuiz(null); setError(null);
+    setCardsChapter(null); setCards([]); setCardsError(null);
+    setPodChapter(null); setPod(null); setPodError(null);
+    setDetail(null);
+  };
   const backToSubjects = () => { setSubject(null); setChapters([]); setChapterCtx(""); setSource(null); backToChapters(); };
+
 
   // ---------- Render ----------
   if (profLoading) return <BrainLoader label="Loading your profile" />;
@@ -193,7 +252,46 @@ function Chapters() {
     );
   }
 
+  // Flashcards view
+  if (cardsChapter) {
+    return (
+      <div className="space-y-5 max-w-2xl mx-auto animate-slide-in">
+        <Button variant="ghost" size="sm" onClick={backToChapters} className="rounded-full">
+          <ArrowLeft className="h-4 w-4 mr-1" /> Chapters
+        </Button>
+        <Flashcards
+          cards={cards}
+          loading={cardsLoading}
+          error={cardsError}
+          title={`${subject} · ${cardsChapter}`}
+          onRetry={() => openFlashcards(cardsChapter)}
+        />
+      </div>
+    );
+  }
+
+  // Podcast view
+  if (podChapter) {
+    return (
+      <div className="space-y-5 max-w-2xl mx-auto animate-slide-in">
+        <Button variant="ghost" size="sm" onClick={backToChapters} className="rounded-full">
+          <ArrowLeft className="h-4 w-4 mr-1" /> Chapters
+        </Button>
+        <PodcastPlayer
+          title={pod?.title ?? `${podChapter} — study session`}
+          summary={pod?.summary}
+          lines={pod?.lines ?? []}
+          loading={podLoading}
+          error={podError}
+          language={lang}
+          onRetry={() => openPodcast(podChapter)}
+        />
+      </div>
+    );
+  }
+
   // Chapter quiz view
+
   if (activeChapter) {
     if (postQuiz) {
       const idx = chapters.findIndex((c) => c.name === postQuiz.chapter);
@@ -244,12 +342,42 @@ function Chapters() {
         <Button variant="ghost" size="sm" onClick={backToSubjects} className="rounded-full">
           <ArrowLeft className="h-4 w-4 mr-1" /> Subjects
         </Button>
-        <div className="rounded-3xl bg-gradient-hero p-6 text-white shadow-glow text-center relative overflow-hidden">
+        <div className="rounded-3xl bg-gradient-hero p-6 text-white shadow-glow relative overflow-hidden">
           <div className="absolute -top-8 -right-8 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
-          <p className="text-white/80 text-sm relative">{countryMeta?.flag} {gradeLabel(grade)} · {subject}</p>
-          <p className="text-3xl font-bold relative">Chapters</p>
-          <p className="text-white/80 text-xs mt-2 relative">Tap a chapter to start its quiz</p>
+          <div className="relative flex items-center gap-4">
+            {source?.cover ? (
+              <img src={source.cover} alt={`${subject} textbook cover`}
+                className="h-24 w-[70px] rounded-lg object-cover shadow-lg ring-2 ring-white/30 shrink-0" />
+            ) : (
+              <div className="h-24 w-[70px] rounded-lg bg-white/15 flex items-center justify-center shrink-0">
+                <BookOpen className="h-7 w-7" />
+              </div>
+            )}
+            <div className="min-w-0">
+              <p className="text-white/80 text-xs">{countryMeta?.flag} {gradeLabel(grade)} · {subject}</p>
+              <p className="text-2xl font-bold leading-tight">Chapters</p>
+              {source?.publisher && (
+                <p className="text-white/80 text-xs mt-1 truncate">{source.publisher}</p>
+              )}
+              <p className="text-white/70 text-[11px] mt-1">Tap a chapter for quiz, flashcards or a podcast</p>
+            </div>
+          </div>
         </div>
+
+        <div className="flex items-center justify-center gap-2">
+          {(["en", "ne"] as const).map((l) => (
+            <button
+              key={l}
+              onClick={() => setLang(l)}
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                lang === l ? "bg-gradient-hero text-white border-transparent shadow-soft" : "bg-card text-muted-foreground border-border"
+              }`}
+            >
+              {l === "en" ? "English" : "नेपाली"}
+            </button>
+          ))}
+        </div>
+
 
         {loadingChapters ? (
           <BrainLoader label="Fetching the official CDC textbook" />
@@ -291,7 +419,7 @@ function Chapters() {
               return (
                 <button
                   key={c.name}
-                  onClick={() => startChapter(c.name)}
+                  onClick={() => setDetail(c)}
                   className={`group relative rounded-2xl bg-white border-2 transition-all hover:-translate-y-0.5 overflow-hidden text-left animate-fade-in ${
                     done ? "border-success/60" : "border-border hover:border-primary"
                   }`}
@@ -319,7 +447,49 @@ function Chapters() {
           </>
         )}
 
+        {detail && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in"
+            onClick={() => setDetail(null)}>
+            <div
+              className="w-full sm:max-w-md bg-card rounded-t-3xl sm:rounded-3xl border border-border shadow-glow p-6 space-y-4 animate-slide-in"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start gap-3">
+                <div className="h-14 w-14 rounded-2xl bg-gradient-hero flex items-center justify-center text-2xl shrink-0">
+                  {detail.emoji}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">
+                    Ch. {chapters.findIndex((c) => c.name === detail.name) + 1} · {subject}
+                  </p>
+                  <h3 className="font-bold text-lg leading-tight">{detail.name}</h3>
+                </div>
+              </div>
+              {detail.summary && <p className="text-sm text-muted-foreground">{detail.summary}</p>}
+
+              <div className="grid gap-2">
+                <Button onClick={() => { const n = detail.name; setDetail(null); startChapter(n); }}
+                  className="rounded-2xl h-12 bg-gradient-hero font-bold justify-start">
+                  <Play className="h-4 w-4 mr-2" /> Start quiz
+                </Button>
+                <Button variant="outline" onClick={() => { const n = detail.name; setDetail(null); openFlashcards(n); }}
+                  className="rounded-2xl h-12 justify-start">
+                  <Layers className="h-4 w-4 mr-2 text-primary" /> Interactive flashcards
+                </Button>
+                <Button variant="outline" onClick={() => { const n = detail.name; setDetail(null); openPodcast(n); }}
+                  className="rounded-2xl h-12 justify-start">
+                  <Headphones className="h-4 w-4 mr-2 text-primary" /> Listen to podcast
+                </Button>
+              </div>
+              <p className="text-[11px] text-center text-muted-foreground">
+                Grounded in the real {source?.publisher ?? "CDC"} textbook · {lang === "en" ? "English" : "नेपाली"}
+              </p>
+            </div>
+          </div>
+        )}
+
       </div>
+
     );
   }
 
