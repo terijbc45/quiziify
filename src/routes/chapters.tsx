@@ -419,7 +419,7 @@ function Chapters() {
               return (
                 <button
                   key={c.name}
-                  onClick={() => startChapter(c.name)}
+                  onClick={() => setDetail(c)}
                   className={`group relative rounded-2xl bg-white border-2 transition-all hover:-translate-y-0.5 overflow-hidden text-left animate-fade-in ${
                     done ? "border-success/60" : "border-border hover:border-primary"
                   }`}
