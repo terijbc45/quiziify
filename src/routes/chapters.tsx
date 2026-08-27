@@ -447,7 +447,49 @@ function Chapters() {
           </>
         )}
 
+        {detail && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in"
+            onClick={() => setDetail(null)}>
+            <div
+              className="w-full sm:max-w-md bg-card rounded-t-3xl sm:rounded-3xl border border-border shadow-glow p-6 space-y-4 animate-slide-in"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start gap-3">
+                <div className="h-14 w-14 rounded-2xl bg-gradient-hero flex items-center justify-center text-2xl shrink-0">
+                  {detail.emoji}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">
+                    Ch. {chapters.findIndex((c) => c.name === detail.name) + 1} · {subject}
+                  </p>
+                  <h3 className="font-bold text-lg leading-tight">{detail.name}</h3>
+                </div>
+              </div>
+              {detail.summary && <p className="text-sm text-muted-foreground">{detail.summary}</p>}
+
+              <div className="grid gap-2">
+                <Button onClick={() => { const n = detail.name; setDetail(null); startChapter(n); }}
+                  className="rounded-2xl h-12 bg-gradient-hero font-bold justify-start">
+                  <Play className="h-4 w-4 mr-2" /> Start quiz
+                </Button>
+                <Button variant="outline" onClick={() => { const n = detail.name; setDetail(null); openFlashcards(n); }}
+                  className="rounded-2xl h-12 justify-start">
+                  <Layers className="h-4 w-4 mr-2 text-primary" /> Interactive flashcards
+                </Button>
+                <Button variant="outline" onClick={() => { const n = detail.name; setDetail(null); openPodcast(n); }}
+                  className="rounded-2xl h-12 justify-start">
+                  <Headphones className="h-4 w-4 mr-2 text-primary" /> Listen to podcast
+                </Button>
+              </div>
+              <p className="text-[11px] text-center text-muted-foreground">
+                Grounded in the real {source?.publisher ?? "CDC"} textbook · {lang === "en" ? "English" : "नेपाली"}
+              </p>
+            </div>
+          </div>
+        )}
+
       </div>
+
     );
   }
 
