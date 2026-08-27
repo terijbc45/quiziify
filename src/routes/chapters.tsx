@@ -96,7 +96,7 @@ function Chapters() {
     setLoadingChapters(true);
     setSource(null);
     fetchChapters({ data: { country, grade, subject } })
-      .then((r: { chapters?: Chapter[]; context?: string; verified?: boolean; message?: string; source_url?: string | null; source_title?: string | null }) => {
+      .then((r: { chapters?: Chapter[]; context?: string; verified?: boolean; message?: string; source_url?: string | null; source_title?: string | null; publisher?: string | null; cover_url?: string | null }) => {
         if (cancelled) return;
         setChapters(r.chapters ?? []);
         setChapterCtx(r.context ?? "");
@@ -105,9 +105,12 @@ function Chapters() {
           message: r.message,
           url: r.source_url ?? null,
           title: r.source_title ?? null,
+          publisher: r.publisher ?? null,
+          cover: r.cover_url ?? null,
         });
         setLoadingChapters(false);
       })
+
       .catch(() => {
         if (cancelled) return;
         setSource({ verified: false, message: "Couldn't reach the official CDC library. Please try again." });
