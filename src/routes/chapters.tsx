@@ -252,7 +252,46 @@ function Chapters() {
     );
   }
 
+  // Flashcards view
+  if (cardsChapter) {
+    return (
+      <div className="space-y-5 max-w-2xl mx-auto animate-slide-in">
+        <Button variant="ghost" size="sm" onClick={backToChapters} className="rounded-full">
+          <ArrowLeft className="h-4 w-4 mr-1" /> Chapters
+        </Button>
+        <Flashcards
+          cards={cards}
+          loading={cardsLoading}
+          error={cardsError}
+          title={`${subject} · ${cardsChapter}`}
+          onRetry={() => openFlashcards(cardsChapter)}
+        />
+      </div>
+    );
+  }
+
+  // Podcast view
+  if (podChapter) {
+    return (
+      <div className="space-y-5 max-w-2xl mx-auto animate-slide-in">
+        <Button variant="ghost" size="sm" onClick={backToChapters} className="rounded-full">
+          <ArrowLeft className="h-4 w-4 mr-1" /> Chapters
+        </Button>
+        <PodcastPlayer
+          title={pod?.title ?? `${podChapter} — study session`}
+          summary={pod?.summary}
+          lines={pod?.lines ?? []}
+          loading={podLoading}
+          error={podError}
+          language={lang}
+          onRetry={() => openPodcast(podChapter)}
+        />
+      </div>
+    );
+  }
+
   // Chapter quiz view
+
   if (activeChapter) {
     if (postQuiz) {
       const idx = chapters.findIndex((c) => c.name === postQuiz.chapter);
