@@ -194,8 +194,42 @@ function Chapters() {
     toast.success("Progress reset");
   };
 
-  const backToChapters = () => { setActiveChapter(null); setQuestions([]); setPostQuiz(null); setError(null); };
+  const openFlashcards = async (chapterName: string) => {
+    if (!grade || !subject) return;
+    setCardsChapter(chapterName);
+    setCards([]);
+    setCardsError(null);
+    setCardsLoading(true);
+    try {
+      const r = await generateFlashcards({ data: { grade, subject, chapter: chapterName, language: lang } });
+      setCards(r.cards ?? []);
+    } catch (e) {
+      setCardsError(e instanceof Error ? e.message : "Couldn't build flashcards.");
+    } finally { setCardsLoading(false); }
+  };
+
+  const openPodcast = async (chapterName: string) => {
+    if (!grade || !subject) return;
+    setPodChapter(chapterName);
+    setPod(null);
+    setPodError(null);
+    setPodLoading(true);
+    try {
+      const r = await generatePodcast({ data: { grade, subject, chapter: chapterName, language: lang } });
+      setPod({ title: r.title, summary: r.summary, lines: r.lines ?? [] });
+    } catch (e) {
+      setPodError(e instanceof Error ? e.message : "Couldn't record this episode.");
+    } finally { setPodLoading(false); }
+  };
+
+  const backToChapters = () => {
+    setActiveChapter(null); setQuestions([]); setPostQuiz(null); setError(null);
+    setCardsChapter(null); setCards([]); setCardsError(null);
+    setPodChapter(null); setPod(null); setPodError(null);
+    setDetail(null);
+  };
   const backToSubjects = () => { setSubject(null); setChapters([]); setChapterCtx(""); setSource(null); backToChapters(); };
+
 
   // ---------- Render ----------
   if (profLoading) return <BrainLoader label="Loading your profile" />;
