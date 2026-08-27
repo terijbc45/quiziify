@@ -40,16 +40,34 @@ function Chapters() {
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [chapterCtx, setChapterCtx] = useState<string>("");
   const [loadingChapters, setLoadingChapters] = useState(false);
-  const [source, setSource] = useState<{ verified: boolean; message?: string; url?: string | null; title?: string | null } | null>(null);
+  const [source, setSource] = useState<{
+    verified: boolean; message?: string; url?: string | null; title?: string | null;
+    publisher?: string | null; cover?: string | null;
+  } | null>(null);
 
 
   const [progress, setProgress] = useState<Set<string>>(new Set());
+
+  // Chapter detail sheet + which study tool is open
+  const [detail, setDetail] = useState<Chapter | null>(null);
+  const [lang, setLang] = useState<"en" | "ne">("en");
 
   const [activeChapter, setActiveChapter] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [postQuiz, setPostQuiz] = useState<null | { score: number; total: number; chapter: string }>(null);
+
+  const [cardsChapter, setCardsChapter] = useState<string | null>(null);
+  const [cards, setCards] = useState<Flashcard[]>([]);
+  const [cardsLoading, setCardsLoading] = useState(false);
+  const [cardsError, setCardsError] = useState<string | null>(null);
+
+  const [podChapter, setPodChapter] = useState<string | null>(null);
+  const [pod, setPod] = useState<{ title: string; summary?: string; lines: PodcastLine[] } | null>(null);
+  const [podLoading, setPodLoading] = useState(false);
+  const [podError, setPodError] = useState<string | null>(null);
+
 
   // Load subjects
   useEffect(() => {
