@@ -12,7 +12,7 @@
 //   4. Download the PDF, extract the front matter, and verify it really is the
 //      book's table of contents before trusting it.
 
-const FIRECRAWL = "https://api.firecrawl.dev/v2";
+import { webSearch, fetchHtml, htmlToText } from "./free-web.server";
 
 const NE_DIGITS = ["०", "१", "२", "३", "४", "५", "६", "७", "८", "९"];
 export function toNepaliNumber(n: string | number): string {
@@ -87,42 +87,15 @@ function hasSubject(hay: string, subject: string): boolean {
 
 type MapLink = { url: string; title?: string; description?: string };
 
+// Free discovery: DuckDuckGo site-search of the official CDC website.
 async function firecrawlMap(search: string, limit = 40): Promise<MapLink[]> {
-  const key = process.env["FIRECRAWL_API_KEY"];
-  if (!key) return [];
-  try {
-    const res = await fetch(`${FIRECRAWL}/map`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ url: "https://moecdc.gov.np", search, limit }),
-    });
-    if (!res.ok) return [];
-    const json = await res.json();
-    const links = json?.links ?? json?.data?.links ?? [];
-    return (Array.isArray(links) ? links : [])
-      .map((l: unknown) => (typeof l === "string" ? { url: l } : (l as MapLink)))
-      .filter((l: MapLink) => !!l?.url)
-      .map((l: MapLink) => ({ ...l, url: l.url.split("#")[0]! }));
-  } catch {
-    return [];
-  }
+  const hits = await webSearch(`site:moecdc.gov.np ${search}`, Math.min(limit, 20));
+  return hits.map((h) => ({ url: h.url, title: h.title, description: h.description }));
 }
 
+// Direct page fetch — no third-party scraper.
 async function firecrawlRawHtml(url: string): Promise<string> {
-  const key = process.env["FIRECRAWL_API_KEY"];
-  if (!key) return "";
-  try {
-    const res = await fetch(`${FIRECRAWL}/scrape`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ url, formats: ["rawHtml"], onlyMainContent: false, timeout: 30000 }),
-    });
-    if (!res.ok) return "";
-    const json = await res.json();
-    return json?.rawHtml ?? json?.data?.rawHtml ?? "";
-  } catch {
-    return "";
-  }
+  return fetchHtml(url);
 }
 
 /** Discover CDC pages relevant to a grade (+ optional subject). */
@@ -327,31 +300,17 @@ const PUBLISHERS: { domain: string; name: string }[] = [
 export type SearchHit = { url: string; title?: string; description?: string; markdown?: string; image?: string | null };
 
 async function firecrawlSearch(query: string, limit = 6, scrape = true): Promise<SearchHit[]> {
-  const key = process.env["FIRECRAWL_API_KEY"];
-  if (!key) return [];
-  try {
-    const res = await fetch(`${FIRECRAWL}/search`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        query,
-        limit,
-        ...(scrape ? { scrapeOptions: { formats: ["markdown"], onlyMainContent: true } } : {}),
-      }),
-    });
-    if (!res.ok) return [];
-    const json = await res.json();
-    const items = json?.data?.web ?? json?.data ?? [];
-    return (Array.isArray(items) ? items : []).map((i: Record<string, unknown>) => ({
-      url: String(i["url"] ?? ""),
-      title: (i["title"] as string) ?? "",
-      description: (i["description"] as string) ?? "",
-      markdown: (i["markdown"] as string) ?? "",
-      image: (i["imageUrl"] as string) ?? ((i["metadata"] as Record<string, string>)?.["ogImage"] ?? null),
-    })).filter((h: SearchHit) => !!h.url);
-  } catch {
-    return [];
-  }
+  const hits = await webSearch(query, limit);
+  return Promise.all(hits.map(async (h) => {
+    let markdown = "";
+    let image: string | null = null;
+    if (scrape) {
+      const html = await fetchHtml(h.url);
+      markdown = htmlToText(html).slice(0, 20000);
+      image = html ? coverFromHtml(html, h.url) : null;
+    }
+    return { url: h.url, title: h.title, description: h.description, markdown, image };
+  }));
 }
 
 /** Pick the book-cover image out of a scraped page's raw HTML. */

@@ -37,18 +37,10 @@ function pickImageFromSearch(json: any): string | null {
 }
 
 async function firecrawlImageSearch(query: string): Promise<string | null> {
-  const key = process.env.FIRECRAWL_API_KEY;
-  if (!key) return null;
-  try {
-    const res = await fetch("https://api.firecrawl.dev/v2/search", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ query, limit: 8, sources: ["images", "web"] }),
-    });
-    if (!res.ok) return null;
-    const json = await res.json();
-    return pickImageFromSearch(json);
-  } catch { return null; }
+  // Free Wikipedia image lookup (no API key / credits needed).
+  void pickImageFromSearch;
+  const { wikiImage } = await import("./free-web.server");
+  return wikiImage(query.replace(/\b(png|transparent|photograph|clear|official|illustration)\b/gi, "").trim());
 }
 
 export async function fetchLogoImage(brand: string, domain?: string): Promise<string | null> {

@@ -101,7 +101,7 @@ function Chapters() {
         setChapters(r.chapters ?? []);
         setChapterCtx(r.context ?? "");
         setSource({
-          verified: r.verified !== false && (r.chapters?.length ?? 0) > 0,
+          verified: r.verified === true && (r.chapters?.length ?? 0) > 0,
           message: r.message,
           url: r.source_url ?? null,
           title: r.source_title ?? null,
