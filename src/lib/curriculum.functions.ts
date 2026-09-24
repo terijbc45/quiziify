@@ -32,19 +32,9 @@ async function cacheSet(key: string, payload: unknown) {
 }
 
 async function firecrawlContext(query: string): Promise<string> {
-  const key = process.env.FIRECRAWL_API_KEY;
-  if (!key) return "";
   try {
-    const nepalQuery = `${query} site:cdc.gov.np OR site:moecdc.gov.np OR site:neb.gov.np OR site:moest.gov.np OR site:edusanjal.com Nepal CDC Curriculum Development Centre NEB`;
-    const res = await fetch("https://api.firecrawl.dev/v2/search", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ query: nepalQuery, limit: 6, scrapeOptions: { formats: ["markdown"] } }),
-    });
-    if (!res.ok) return "";
-    const json = await res.json();
-    const items = json?.data?.web ?? json?.data ?? [];
-    return items.slice(0, 6).map((i: any) => `- ${i.title ?? ""}: ${(i.markdown ?? i.description ?? "").slice(0, 1200)}`).join("\n");
+    const { webContext } = await import("../server/free-web.server");
+    return await webContext(`${query} site:moecdc.gov.np OR site:neb.gov.np OR site:edusanjal.com`, 6);
   } catch { return ""; }
 }
 

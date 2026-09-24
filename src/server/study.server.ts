@@ -70,7 +70,7 @@ export async function aiTool<T>(
   if (!key) throw new Error("AI is not configured for this app yet.");
   const res = await fetch(GATEWAY, {
     method: "POST",
-    headers: { "Lovable-API-Key": key, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model,
       temperature: 0.6,
