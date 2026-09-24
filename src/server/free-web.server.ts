@@ -26,8 +26,35 @@ async function timedFetch(url: string, init: RequestInit = {}, ms = 15000): Prom
   }
 }
 
-/** Free web search via DuckDuckGo's HTML endpoint. */
+const ENGINE_HOSTS = /(brave\.com|bravesoftware|duckduckgo\.com|bing\.com|google\.com|imgs\.search)/i;
+
+/** Brave Search HTML (free, no key) — backup when DuckDuckGo rate-limits. */
+async function braveSearch(query: string, limit: number): Promise<WebHit[]> {
+  const res = await timedFetch(`https://search.brave.com/search?q=${encodeURIComponent(query)}&source=web`);
+  if (!res?.ok) return [];
+  const html = await res.text();
+  const seen = new Set<string>();
+  const hits: WebHit[] = [];
+  for (const m of html.matchAll(/<a[^>]+href="(https?:\/\/[^"]+)"[^>]*>([\s\S]*?)<\/a>/g)) {
+    const url = m[1]!.replace(/&amp;/g, "&").split("#")[0]!;
+    if (ENGINE_HOSTS.test(new URL(url).hostname) || seen.has(url)) continue;
+    const title = decode(m[2]!);
+    if (title.length < 3) continue;
+    seen.add(url);
+    hits.push({ url, title, description: "" });
+    if (hits.length >= limit) break;
+  }
+  return hits;
+}
+
+/** Free web search: DuckDuckGo HTML, falling back to Brave. */
 export async function webSearch(query: string, limit = 10): Promise<WebHit[]> {
+  const ddg = await ddgSearch(query, limit);
+  if (ddg.length) return ddg;
+  return braveSearch(query, limit).catch(() => []);
+}
+
+async function ddgSearch(query: string, limit: number): Promise<WebHit[]> {
   const res = await timedFetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`);
   if (!res?.ok) return [];
   const html = await res.text();
