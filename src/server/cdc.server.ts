@@ -12,7 +12,7 @@
 //   4. Download the PDF, extract the front matter, and verify it really is the
 //      book's table of contents before trusting it.
 
-import { webSearch, fetchHtml, htmlToText } from "./free-web.server";
+import { webSearch, fetchHtml, htmlToText, firecrawlMarkdown } from "./free-web.server";
 
 const NE_DIGITS = ["०", "१", "२", "३", "४", "५", "६", "७", "८", "९"];
 export function toNepaliNumber(n: string | number): string {
@@ -98,23 +98,41 @@ async function firecrawlRawHtml(url: string): Promise<string> {
   return fetchHtml(url);
 }
 
-/** Discover CDC pages relevant to a grade (+ optional subject). */
+/** Every book / curriculum page on moecdc.gov.np, read from the official sitemap. */
+let sitemapMemo: { at: number; links: MapLink[] } | null = null;
+export async function cdcSitemapLinks(): Promise<MapLink[]> {
+  if (sitemapMemo && Date.now() - sitemapMemo.at < 6 * 3600_000) return sitemapMemo.links;
+  const pages = ["", "?p=2", "?p=3", "?p=4", "?p=5", "?p=6"];
+  const xmls = await Promise.all(pages.map((p) => fetchHtml(`https://moecdc.gov.np/sitemap-news.xml${p}`).catch(() => "")));
+  const seen = new Set<string>();
+  const links: MapLink[] = [];
+  for (const xml of xmls) {
+    for (const m of xml.matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/g)) {
+      const url = m[1]!.trim();
+      if (!/\/content\/\d+\//.test(url) || seen.has(url)) continue;
+      seen.add(url);
+      const slug = decodeURIComponent(url.replace(/\/$/, "").split("/").pop() ?? "");
+      links.push({ url, title: slug.replace(/-+/g, " ").trim(), description: "" });
+    }
+  }
+  if (links.length) sitemapMemo = { at: Date.now(), links };
+  return links;
+}
+
+/** Discover CDC pages relevant to a grade (+ optional subject). Sitemap first, web search second. */
 export async function discoverCdcPages(grade: string, subject?: string): Promise<MapLink[]> {
   const num = gradeNumber(grade) ?? grade;
   const ne = toNepaliNumber(num);
-  const queries = subject
-    ? [
-        `${subjectAliases(subject)[1] ?? subject} कक्षा ${ne} पाठ्यपुस्तक`,
-        `${subject} class ${num} textbook`,
-      ]
-    : [
-        `कक्षा ${ne} पाठ्यपुस्तक`,
-        `class ${num} textbook curriculum`,
-      ];
-
   const results: MapLink[] = [];
-  for (const q of queries) {
-    results.push(...(await firecrawlMap(q, 40)));
+  const site = await cdcSitemapLinks().catch(() => [] as MapLink[]);
+  results.push(...site.filter((l) => hasGradeToken(`${l.title} ${l.url}`.toLowerCase(), grade)));
+
+  const hasSubjectHit = subject ? results.some((l) => scorePage(l, grade, subject) > 0) : results.length > 3;
+  if (!hasSubjectHit) {
+    const queries = subject
+      ? [`${subjectAliases(subject)[1] ?? subject} कक्षा ${ne} पाठ्यपुस्तक`, `${subject} class ${num} textbook`]
+      : [`कक्षा ${ne} पाठ्यपुस्तक`, `class ${num} textbook curriculum`];
+    for (const q of queries) results.push(...(await firecrawlMap(q, 40)));
   }
   const seen = new Set<string>();
   return results.filter((l) => (seen.has(l.url) ? false : (seen.add(l.url), true)));
@@ -198,7 +216,42 @@ function looksLikeToc(text: string): boolean {
 }
 
 /** Deterministically pull chapter/unit titles out of the raw ToC text. */
+/** "Table of Contents  1 PHYSICAL QUANTITIES 1  2 VECTORS 21 ..." style (CDC books). */
+function parseNumberedToc(raw: string): string[] {
+  const text = raw.replace(/[०-९]/g, (d) => String("०१२३४५६७८९".indexOf(d))).replace(/\.{2,}/g, " ").replace(/\s+/g, " ");
+  const at = text.search(/table of contents|contents|विषय\s*सूची|विषयसूची|अनुक्रम/i);
+  const body = at >= 0 ? text.slice(at, at + 9000) : text.slice(0, 9000);
+  let best: string[] = [];
+  const re = /(?:^|\s)(\d{1,2})\s*[.)]?\s+([^\d]{3,110}?)\s+(\d{1,4})(?=\s|$)/g;
+  // Try every starting "1 ..." and keep the longest strictly-sequential run.
+  for (const start of body.matchAll(/(?:^|\s)1\s*[.)]?\s+[^\d]/g)) {
+    const seg = body.slice(start.index ?? 0);
+    const out: string[] = [];
+    let expect = 1;
+    let lastPage = 0;
+    re.lastIndex = 0;
+    for (const m of seg.matchAll(re)) {
+      const n = Number(m[1]);
+      const page = Number(m[3]);
+      if (n !== expect) { if (out.length) break; else continue; }
+      if (page < lastPage) break;
+      const title = m[2]!.replace(/^(chapter|unit|lesson|पाठ|एकाइ)\s*/i, "").trim().replace(/[\s,.\-–:]+$/, "");
+      if (title.length < 2 || /^page/i.test(title)) break;
+      out.push(title);
+      expect++;
+      lastPage = page;
+    }
+    if (out.length > best.length) best = out;
+  }
+  const tidy = (t: string) => (t === t.toUpperCase() && /[A-Z]/.test(t)
+    ? t.toLowerCase().replace(/\b([a-z])/g, (c) => c.toUpperCase()).replace(/\b(And|Of|The|At|Through|In|On)\b/g, (w) => w.toLowerCase())
+    : t);
+  return best.length >= 3 ? best.map(tidy).slice(0, 40) : [];
+}
+
 export function parseTocChapters(toc: string): string[] {
+  const numbered = parseNumberedToc(toc);
+  if (numbered.length >= 3) return numbered;
   const cleaned = toc.replace(/\.{2,}/g, " ").replace(/\s+/g, " ");
   const out: string[] = [];
   const patterns = [
@@ -249,7 +302,12 @@ export async function fetchCdcTextbookSource(grade: string, subject: string): Pr
     if (!html) continue;
     const pdfs = pdfUrlsFromHtml(html).filter((p) => pdfLooksLikeTextbook(p, grade, subject));
     for (const pdf of pdfs.slice(0, 2)) {
-      const toc = await pdfFrontMatter(pdf);
+      let toc = await pdfFrontMatter(pdf);
+      // Scanned (image-only) books: let Firecrawl OCR the PDF.
+      if (!looksLikeToc(toc) || parseTocChapters(toc).length < 3) {
+        const ocr = (await firecrawlMarkdown(pdf).catch(() => "")).slice(0, 30000);
+        if (looksLikeToc(ocr)) toc = ocr;
+      }
       if (!looksLikeToc(toc)) continue;
       return {
         pageUrl: l.url,
@@ -268,6 +326,7 @@ export async function fetchCdcTextbookSource(grade: string, subject: string): Pr
 export async function fetchCdcSubjectEvidence(grade: string): Promise<{ titles: string[]; urls: string[] }> {
   const links = await discoverCdcPages(grade);
   const keep = links.filter((l) => {
+    if (/specification|specialization|table|schedule|curriculum|course|notice/i.test(l.title ?? "")) return false;
     const hay = `${l.title ?? ""} ${decodeURIComponent(l.url)}`.toLowerCase();
     if (REJECT_DOC.test(hay)) return false;
     if (!hasGradeToken(hay, grade)) return false;
