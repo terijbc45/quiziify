@@ -47,8 +47,67 @@ async function braveSearch(query: string, limit: number): Promise<WebHit[]> {
   return hits;
 }
 
-/** Free web search: DuckDuckGo HTML, falling back to Brave. */
+// ---------- Firecrawl (primary internet access) ----------
+const FIRECRAWL_V2 = "https://api.firecrawl.dev/v2";
+let firecrawlBlockedUntil = 0; // skip Firecrawl briefly after a credit / auth failure
+
+async function firecrawl<T = any>(path: string, body: unknown, ms = 45000): Promise<T | null> {
+  const key = process.env.FIRECRAWL_API_KEY;
+  if (!key || Date.now() < firecrawlBlockedUntil) return null;
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), ms);
+  try {
+    const res = await fetch(`${FIRECRAWL_V2}${path}`, {
+      method: "POST",
+      signal: ctl.signal,
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      console.error(`Firecrawl ${path} failed [${res.status}]: ${txt.slice(0, 200)}`);
+      if (res.status === 401 || res.status === 402 || res.status === 403) firecrawlBlockedUntil = Date.now() + 10 * 60_000;
+      return null;
+    }
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+async function firecrawlSearch(query: string, limit: number, tbs?: string): Promise<WebHit[]> {
+  const json = await firecrawl<any>("/search", { query, limit, ...(tbs ? { tbs } : {}) });
+  const web = json?.data?.web ?? json?.data ?? [];
+  if (!Array.isArray(web)) return [];
+  return web
+    .filter((h: any) => h?.url)
+    .map((h: any) => ({ url: String(h.url), title: String(h.title ?? ""), description: String(h.description ?? "") }))
+    .slice(0, limit);
+}
+
+/** Firecrawl scrape → markdown. Handles PDFs (incl. scanned books via OCR). */
+export async function firecrawlMarkdown(url: string): Promise<string> {
+  const json = await firecrawl<any>("/scrape", { url, formats: ["markdown"], onlyMainContent: false }, 90000);
+  return String(json?.data?.markdown ?? json?.markdown ?? "");
+}
+
+/** Firecrawl image search. */
+export async function firecrawlImage(query: string): Promise<string | null> {
+  const json = await firecrawl<any>("/search", { query, limit: 3, sources: [{ type: "images" }] });
+  const imgs = json?.data?.images ?? [];
+  for (const it of imgs) {
+    const u = it?.imageUrl ?? it?.url;
+    if (u && /^https?:\/\//.test(u)) return u;
+  }
+  return null;
+}
+
+/** Web search: Firecrawl first, then free DuckDuckGo / Brave as a safety net. */
 export async function webSearch(query: string, limit = 10): Promise<WebHit[]> {
+  const fc = await firecrawlSearch(query, limit);
+  if (fc.length) return fc;
   const ddg = await ddgSearch(query, limit);
   if (ddg.length) return ddg;
   return braveSearch(query, limit).catch(() => []);
@@ -99,6 +158,8 @@ export async function webContext(query: string, limit = 5): Promise<string> {
 
 /** Free image lookup via Wikipedia page images. */
 export async function wikiImage(query: string): Promise<string | null> {
+  const fc = await firecrawlImage(query);
+  if (fc) return fc;
   const api = `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrlimit=3&gsrsearch=${encodeURIComponent(query)}&prop=pageimages&piprop=original|thumbnail&pithumbsize=800`;
   const res = await timedFetch(api);
   if (!res?.ok) return null;
@@ -115,6 +176,8 @@ export async function wikiImage(query: string): Promise<string | null> {
 
 /** Latest headlines via Google News RSS (free). */
 export async function newsHeadlines(query: string, limit = 5): Promise<string[]> {
+  const fc = await firecrawlSearch(`${query} latest news`, limit, "qdr:w");
+  if (fc.length) return fc.map((h) => h.title).filter(Boolean);
   const res = await timedFetch(`https://news.google.com/rss/search?q=${encodeURIComponent(query)}+when:7d&hl=en&gl=US&ceid=US:en`);
   if (!res?.ok) return [];
   const xml = await res.text();

@@ -73,7 +73,7 @@ export const fetchSubjects = createServerFn({ method: "POST" }).middleware([requ
   .inputValidator((input: unknown): SubjectsInput => SubjectsIn.parse(input))
   .handler(async ({ data }) => {
     const optionalsKey = (data.optionals ?? []).map((s) => s.toLowerCase().trim()).sort().join("|");
-    const ck = `subjects:v5:${data.country.toLowerCase()}:${data.grade.toLowerCase()}:${optionalsKey}`;
+    const ck = `subjects:v6:${data.country.toLowerCase()}:${data.grade.toLowerCase()}:${optionalsKey}`;
     const cached = await cacheGet<{ subjects: Subject[] }>(ck);
     if (cached?.subjects?.length) return { subjects: cached.subjects };
 
@@ -82,7 +82,7 @@ export const fetchSubjects = createServerFn({ method: "POST" }).middleware([requ
       : "";
 
     // Real CDC evidence: titles of the official textbook / curriculum pages on moecdc.gov.np.
-    const cdcEvidenceKey = `cdc-subject-evidence:v1:${data.grade.toLowerCase()}`;
+    const cdcEvidenceKey = `cdc-subject-evidence:v2:${data.grade.toLowerCase()}`;
     let cdc = await cacheGet<{ titles: string[]; urls: string[] }>(cdcEvidenceKey);
     if (!cdc?.titles?.length) {
       cdc = await fetchCdcSubjectEvidence(data.grade).catch(() => ({ titles: [], urls: [] }));
@@ -132,14 +132,14 @@ type ChaptersInput = z.infer<typeof ChaptersIn>;
 export const fetchChapters = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
   .inputValidator((input: unknown): ChaptersInput => ChaptersIn.parse(input))
   .handler(async ({ data }) => {
-    const ck = `chapters:v6:${data.country.toLowerCase()}:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}`;
+    const ck = `chapters:v7:${data.country.toLowerCase()}:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}`;
     const cached = await cacheGet<{ chapters: Chapter[]; context: string; source_url?: string | null }>(ck);
     if (cached?.chapters?.length) return cached;
 
 
     // REAL SOURCES ONLY: (1) the official CDC textbook PDF's Table of Contents,
     // (2) a trusted Nepali publisher's printed book contents page (Asmita, Ekta, ...).
-    const srcKey = `cdc-book:v3:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}`;
+    const srcKey = `cdc-book:v4:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}`;
     type Src = Awaited<ReturnType<typeof fetchCdcTextbookSource>> & {
       publisher?: string | null;
       coverUrl?: string | null;
@@ -168,7 +168,7 @@ export const fetchChapters = createServerFn({ method: "POST" }).middleware([requ
         context: "",
         source_url: src?.pageUrl ?? null,
         verified: false,
-        message: `We couldn't reach the official CDC (moecdc.gov.np) textbook for ${data.subject} · ${data.grade} right now. Chapters are only shown when they come straight from the real CDC book.`,
+        message: `We couldn't reach the official CDC (moecdc.gov.np) textbook for ${data.subject} · Class ${data.grade.match(/\d+/)?.[0] ?? data.grade} right now. Chapters are only shown when they come straight from the real CDC book.`,
       };
     }
 
@@ -253,7 +253,7 @@ export const fetchCurriculumContext = createServerFn({ method: "POST" }).middlew
   .inputValidator((input: unknown): CurriculumContextInput => CtxIn.parse(input))
   .handler(async ({ data }) => {
     // Prefer the cached official CDC textbook extract for this grade + subject.
-    const srcKey = `cdc-book:v3:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}`;
+    const srcKey = `cdc-book:v4:${data.grade.toLowerCase()}:${data.subject.toLowerCase()}`;
     const src = await cacheGet<{ pageUrl: string | null; pdfUrl: string | null; toc: string; verified?: boolean }>(srcKey);
     if (src?.toc) {
       const chapterHint = data.chapter ? `Chapter of focus: ${data.chapter}\n` : "";
