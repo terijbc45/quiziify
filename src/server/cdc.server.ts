@@ -52,7 +52,7 @@ const SUBJECT_ALIASES: Record<string, string[]> = {
 };
 
 /** Docs that are NOT textbooks — never use these as a chapter source. */
-const REJECT_DOC = /(specification|विशिष्टिकरण|नमुना|model\s*question|question\s*paper|grid|result|notice|सूचना|प्रेस|press|vacancy|tender|बोलपत्र|circular|परिपत्र|calendar|पात्रो|teacher\s*guide|शिक्षक\s*निर्देशिका|training|तालिम)/i;
+const REJECT_DOC = /(specification|विशिष्टिकरण|नमुना|model\s*question|question\s*paper|grid|result|notice|सूचना|प्रेस|press|vacancy|tender|बोलपत्र|circular|परिपत्र|calendar|पात्रो|teacher\s*guide|teacher\s*directory|शिक्षक\s*निर्देशिका|training|तालिम)/i;
 
 function gradeNumber(grade: string): string | null {
   return (grade.match(/\d+/) ?? [])[0] ?? null;
@@ -149,6 +149,13 @@ function scorePage(link: MapLink, grade: string, subject: string): number {
   if (found && found !== want && !want.includes(found) && !subjectAliases(subject).includes(found)) return -1;
 
   let score = 5;
+  // Page title should START with the subject ("science-and-technology-class-10"),
+  // not merely contain it ("environmental-science-class-10").
+  const head = (link.title ?? "").toLowerCase().replace(/^(elective|optional|compulsory)\s+/, "").split(/\s+class\s+/)[0] ?? "";
+  if (subjectAliases(subject).some((a) => a.length > 2 && head.startsWith(a))) score += 4;
+  else if (head && !subjectAliases(subject).some((a) => a.length > 2 && head.includes(a))) score -= 1;
+  else score -= 3;
+  if (/translated|english edition/.test(head + (link.title ?? ""))) score += 1;
   if (/\/content\//.test(link.url)) score += 3;
   if (/पाठ्यपुस्तक|textbook|book/i.test(hay)) score += 3;
   // Exact subject phrase match beats a loose alias hit.
@@ -299,7 +306,7 @@ export async function fetchCdcTextbookSource(grade: string, subject: string): Pr
     .map((l) => ({ l, s: scorePage(l, grade, subject) }))
     .filter((x) => x.s > 0)
     .sort((a, b) => b.s - a.s)
-    .slice(0, 4);
+    .slice(0, 6);
 
   for (const { l } of ranked) {
     const html = await firecrawlRawHtml(l.url);
