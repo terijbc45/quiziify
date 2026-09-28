@@ -143,6 +143,10 @@ function scorePage(link: MapLink, grade: string, subject: string): number {
   if (REJECT_DOC.test(hay)) return -1;
   if (!hasGradeToken(hay, grade)) return -1;
   if (!hasSubject(hay, subject)) return -1;
+  // "computer science" must not satisfy "science", "optional maths" not "maths", etc.
+  const found = Object.keys(SUBJECT_ALIASES).filter((k) => hay.includes(k)).sort((a, b) => b.length - a.length)[0];
+  const want = subject.toLowerCase().trim();
+  if (found && found !== want && !want.includes(found) && !subjectAliases(subject).includes(found)) return -1;
 
   let score = 5;
   if (/\/content\//.test(link.url)) score += 3;
