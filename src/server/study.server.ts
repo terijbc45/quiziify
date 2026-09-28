@@ -49,7 +49,7 @@ export async function bookExtract(grade: string, subject: string): Promise<{
     pdfUrl?: string | null;
     publisher?: string | null;
     verified?: boolean;
-  }>(`cdc-book:v3:${grade.toLowerCase()}:${subject.toLowerCase()}`);
+  }>(`cdc-book:v4:${grade.toLowerCase()}:${subject.toLowerCase()}`);
   if (!src?.toc) return null;
   return {
     toc: src.toc,

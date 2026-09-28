@@ -68,7 +68,7 @@ function subjectAliases(subject: string): string[] {
   const s = subject.toLowerCase().trim();
   const direct = SUBJECT_ALIASES[s] ?? [];
   const fuzzy = Object.entries(SUBJECT_ALIASES)
-    .filter(([k]) => s.includes(k) || k.includes(s))
+    .filter(([k]) => s.includes(k))
     .flatMap(([, v]) => v);
   const words = s.split(/[^a-z]+/).filter((w) => w.length > 4);
   return [...new Set([s, ...direct, ...fuzzy, ...words])].filter(Boolean);
